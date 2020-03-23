@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link
+          href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+          rel="stylesheet"
+  />
+  <link
+          href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
+          rel="stylesheet"
+  />
+  <link
+          href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+          rel="stylesheet"
+  />
+  <meta
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+          name="viewport"
+  />
+</head>
+<body>
+<div id="app">
+  <v-app>
+    <v-app-bar
+            app
+            color="blue darken-3"
+            dark
+    >
+      <v-app-bar-nav-icon/>
+      <v-toolbar-title>
+        <span>Google Contacts</span>
+      </v-toolbar-title>
+      <v-text-field
+              class="hidden-sm-and-down"
+              flat
+              hide-details
+              label="Search"
+              prepend-inner-icon="mdi-magnify"
+              solo-inverted
+      />
+      <v-spacer/>
+      <v-btn icon>
+        <v-icon>mdi-apps</v-icon>
+      </v-btn>
+      <v-btn icon>
+        <v-icon>mdi-bell</v-icon>
+      </v-btn>
+      <v-btn icon large>
+        <v-avatar item size="32px">
+          <v-img
+                  alt="Vuetify"
+                  src="https://cdn.vuetifyjs.com/images/logos/logo.svg"
+          />
+        </v-avatar>
+      </v-btn>
+    </v-app-bar>
+    <v-content>
+      <v-container class="fill-height" fluid>
+        <v-row align="center" justify="center">
+          <v-tooltip right>
+            <template v-slot:activator="{ on }">
+              <v-btn :href="source" icon large target="_blank" v-on="on">
+                <v-icon large>mdi-code-tags</v-icon>
+              </v-btn>
+            </template>
+            <span>Source</span>
+          </v-tooltip>
+          <v-tooltip right>
+            <template v-slot:activator="{ on }">
+              <v-btn
+                      href="https://codepen.io/johnjleider/pen/MNYLdL"
+                      icon
+                      large
+                      target="_blank"
+                      v-on="on"
+              >
+                <v-icon large>mdi-codepen</v-icon>
+              </v-btn>
+            </template>
+            <span>Codepen</span>
+          </v-tooltip>
+        </v-row>
+      </v-container>
+    </v-content>
+    <v-btn
+            @click="dialog = !dialog"
+            bottom
+            color="pink"
+            dark
+            fab
+            fixed
+            right
+    >
+      <v-icon>mdi-plus</v-icon>
+    </v-btn>
+  </v-app>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+<script>
+  new Vue({
+    el: "#app",
+    vuetify: new Vuetify(),
+    props: {
+      source: String
+    },
+    data: () => ({
+      dialog: false,
+      drawer: null,
+      items: [
+        {icon: "mdi-contacts", text: "Contacts"},
+        {icon: "mdi-history", text: "Frequently contacted"},
+        {icon: "mdi-content-copy", text: "Duplicates"},
+        {
+          icon: "mdi-chevron-up",
+          "icon-alt": "mdi-chevron-down",
+          text: "Labels",
+          model: true,
+          children: [{icon: "mdi-plus", text: "Create label"}]
+        },
+        {
+          icon: "mdi-chevron-up",
+          "icon-alt": "mdi-chevron-down",
+          text: "More",
+          model: false,
+          children: [
+            {text: "Import"},
+            {text: "Export"},
+            {text: "Print"},
+            {text: "Undo changes"},
+            {text: "Other contacts"}
+          ]
+        },
+        {icon: "mdi-settings", text: "Settings"},
+        {icon: "mdi-message", text: "Send feedback"},
+        {icon: "mdi-help-circle", text: "Help"},
+        {icon: "mdi-cellphone-link", text: "App downloads"},
+        {icon: "mdi-keyboard", text: "Go to the old version"}
+      ]
+    })
+  });
+</script>
+</body>
+</html>
