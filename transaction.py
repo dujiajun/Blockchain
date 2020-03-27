@@ -18,9 +18,6 @@ class Pointer(Printable):
         self.tx_id = tx_id
         self.n = n
 
-    # def __repr__(self):
-    #     return f"Pointer(tx_id: {self.tx_id}, n: {self.n})"
-
 
 class Vin(Printable):
     """
@@ -44,9 +41,6 @@ class Vin(Printable):
         """
         return self.signature + self.pubkey
 
-    # def __repr__(self):
-    #     return f"Vin(to_spend: {self.to_spend}, signature: {self.signature}, pubkey: {self.pubkey})"
-
 
 class Vout(Printable):
     """
@@ -67,9 +61,6 @@ class Vout(Printable):
         :return: 公钥脚本（锁定脚本）
         """
         return f"OP_DUP OP_ADDR {self.to_addr} OP_EQ OP_CHECKSIG"
-
-    # def __repr__(self):
-    #     return f"Vout(to_addr: {self.to_addr}, value: {self.value})"
 
 
 class Tx(Printable):
@@ -109,9 +100,6 @@ class Tx(Printable):
         """
         return sha256d(f"{self.tx_in}{self.tx_out}")
 
-    # def __repr__(self):
-    #     return f"Tx(id: {self.id})"
-
     @classmethod
     def load_from_string(cls, string):
         """
@@ -149,9 +137,10 @@ class UTXO(Printable):
         """
         return UTXO(self.vout, self.pointer, self.is_coinbase, unspent, confirmed)
 
-    # def __repr__(self):
-    #    return "UTXO(vout: {0}, pointer: {1})".format(self.vout, self.pointer)
-
 
 if __name__ == '__main__':
-    print(str(Tx()))
+    pointer = Pointer(2, 3)
+    vin = Vin(pointer, 2, 3)
+    vout = Vout(2, 4)
+    tx = Tx([vin], [vout])
+    print(tx)

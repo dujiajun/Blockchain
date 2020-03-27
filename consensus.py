@@ -20,3 +20,11 @@ def mine(block):
     while int(sha256d(block.header(nonce)), 16) >= target:
         nonce += 1
     return nonce
+
+
+if __name__ == '__main__':
+    from block import Block
+
+    block = Block()
+    nonce = mine(block)
+    print(nonce)

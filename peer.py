@@ -22,7 +22,7 @@ class Peer:
         self.wallet = Wallet()
         self.allow_utxo_from_pool = True
         self.orphan_block = []
-
+        self.candidate_block = None
         self.__utxos_from_vins = []
         self.__utxos_from_vouts = []
         self.__pointers_from_vouts = []
@@ -33,14 +33,21 @@ class Peer:
         """
         :return: 钱包地址
         """
-        return self.wallet.addr
+        return self.wallet.addr if self.wallet.addr else None
 
     @property
     def pk(self):
         """
         :return:公钥
         """
-        return self.wallet.pk.to_string()
+        return self.wallet.pk.to_string() if self.wallet.pk else None
+
+    @property
+    def sk(self):
+        """
+        :return: 私钥
+        """
+        return self.wallet.sk.to_string() if self.wallet.sk else None
 
     def generate_key(self):
         """
@@ -95,6 +102,10 @@ class Peer:
         return True
 
     def broadcast_transaction(self, tx):
+        """
+        广播交易
+        :param tx: 交易
+        """
         payload = {'transaction': str(tx)}
         for node in self.peer_nodes:
             url = f"http://{node}/broadcast-transaction"
@@ -113,6 +124,26 @@ class Peer:
                 return True
         return False
 
+    def create_genesis_block(self):
+        """
+        初始化创世区块
+        """
+        tx_in = [Vin(to_spend=None,
+                     signature=b'I love blockchain',
+                     pubkey=None)]
+
+        tx_out = [Vout(value=Params.INITIAL_MONEY, to_addr=self.addr)]
+
+        txs = [Tx(tx_in=tx_in, tx_out=tx_out)]
+        genesis_block = Block(prev_hash=None,
+                              timestamp=12345,
+                              bits=0,
+                              nonce=0,
+                              txs=txs)
+        self.chain.append(genesis_block)
+        utxos = find_utxos_from_block(txs)
+        add_utxos_to_set(self.utxo_set, utxos)
+
     def create_candidate_block(self):
         """
         构造候选区块
@@ -124,16 +155,17 @@ class Peer:
         value = Params.MINING_REWARDS  # TODO 交易费
         coinbase = Tx.create_coinbase(self.addr, value)
         txs = [coinbase] + txs
-        block = Block(timestamp=None, prev_hash=prev_hash, nonce=0,
-                      bits=Params.DIFFICULTY_BITS, txs=txs)  # TODO 时戳
-        return block
+        self.candidate_block = Block(timestamp=None, prev_hash=prev_hash, nonce=0,
+                                     bits=Params.DIFFICULTY_BITS, txs=txs)  # TODO 时戳
 
     def consensus(self):
         """
         进行共识
         :return: 修改nonce后的区块
         """
-        block = self.create_candidate_block()
+        if not self.candidate_block:
+            self.create_candidate_block()
+        block = self.candidate_block
         nonce = mine(block)
         block = block.replace(nonce)
         return block

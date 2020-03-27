@@ -14,6 +14,12 @@ class Wallet:
         self.sk = None
         self.addr = None
 
+    def empty(self):
+        """
+        :return: 钱包是否存在
+        """
+        return self.addr is None
+
     def generate_key(self):
         """
         生成新的密钥对

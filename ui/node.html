@@ -1,145 +1,323 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link
-          href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
-          rel="stylesheet"
-  />
-  <link
-          href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
-          rel="stylesheet"
-  />
-  <link
-          href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
-          rel="stylesheet"
-  />
-  <meta
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
-          name="viewport"
-  />
+    <link
+            href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+            rel="stylesheet"
+    />
+    <link
+            href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
+            rel="stylesheet"
+    />
+    <link
+            href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+            rel="stylesheet"
+    />
+    <meta
+            content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+            name="viewport"
+    />
 </head>
 <body>
 <div id="app">
-  <v-app>
-    <v-app-bar
-            app
-            color="blue darken-3"
-            dark
-    >
-      <v-app-bar-nav-icon/>
-      <v-toolbar-title>
-        <span>Google Contacts</span>
-      </v-toolbar-title>
-      <v-text-field
-              class="hidden-sm-and-down"
-              flat
-              hide-details
-              label="Search"
-              prepend-inner-icon="mdi-magnify"
-              solo-inverted
-      />
-      <v-spacer/>
-      <v-btn icon>
-        <v-icon>mdi-apps</v-icon>
-      </v-btn>
-      <v-btn icon>
-        <v-icon>mdi-bell</v-icon>
-      </v-btn>
-      <v-btn icon large>
-        <v-avatar item size="32px">
-          <v-img
-                  alt="Vuetify"
-                  src="https://cdn.vuetifyjs.com/images/logos/logo.svg"
-          />
-        </v-avatar>
-      </v-btn>
-    </v-app-bar>
-    <v-content>
-      <v-container class="fill-height" fluid>
-        <v-row align="center" justify="center">
-          <v-tooltip right>
-            <template v-slot:activator="{ on }">
-              <v-btn :href="source" icon large target="_blank" v-on="on">
-                <v-icon large>mdi-code-tags</v-icon>
-              </v-btn>
-            </template>
-            <span>Source</span>
-          </v-tooltip>
-          <v-tooltip right>
-            <template v-slot:activator="{ on }">
-              <v-btn
-                      href="https://codepen.io/johnjleider/pen/MNYLdL"
-                      icon
-                      large
-                      target="_blank"
-                      v-on="on"
-              >
-                <v-icon large>mdi-codepen</v-icon>
-              </v-btn>
-            </template>
-            <span>Codepen</span>
-          </v-tooltip>
-        </v-row>
-      </v-container>
-    </v-content>
-    <v-btn
-            @click="dialog = !dialog"
-            bottom
-            color="pink"
-            dark
-            fab
-            fixed
-            right
-    >
-      <v-icon>mdi-plus</v-icon>
-    </v-btn>
-  </v-app>
+    <v-app id="inspire">
+        <v-app-bar app color="primary" dark>
+            <v-toolbar-title class="ml-1 mr-2">
+                区块链管理平台
+            </v-toolbar-title>
+
+            <v-btn text>本地</v-btn>
+            <v-btn text>网络</v-btn>
+            <v-spacer></v-spacer>
+        </v-app-bar>
+        <v-content>
+            <v-card class="mx-4 my-4" tile>
+                <v-card-title>节点钱包</v-card-title>
+                <v-card-text v-if="wallet">
+                    <div>地址：{{wallet.addr}}</div>
+                    <div>公钥：{{wallet.pk}}</div>
+                    <div>私钥：{{wallet.sk}}</div>
+                    <div>余额：{{balance}}</div>
+                </v-card-text>
+                <v-card-text v-else>
+                    还没有新建钱包
+                </v-card-text>
+                <v-card-actions>
+                    <v-btn @click="newWallet" color="primary" text>
+                        新建钱包
+                    </v-btn>
+                    <v-btn @click="loadWallet" color="primary" text>
+                        加载钱包
+                    </v-btn>
+                    <v-btn @click="dialog = !dialog" color="primary" text>
+                        新建交易
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+            <v-tabs fixed-tabs v-model="tab" v-on:change="changeTab">
+                <v-tab :key="i" v-for="i in tabs">
+                    {{i}}
+                </v-tab>
+            </v-tabs>
+            <v-tabs-items v-model="tab">
+                <v-tab-item>
+                    <div class="mx-4">
+                        <div class="d-flex">
+                            <v-btn @click="loadChain" class="my-2" color="primary"
+                            >刷新区块链
+                            </v-btn
+                            >
+                            <v-btn class="my-2 mx-2" color="primary">挖矿</v-btn>
+                        </div>
+                        <v-card
+                                :key="block.prev_hash"
+                                class="my-2"
+                                tile
+                                v-for="(block,i) in chain"
+                        >
+                            <v-card-title>
+                                Block #{{i}}
+                            </v-card-title>
+                            <v-card-text>
+                                {{block}}
+                            </v-card-text>
+                        </v-card>
+                    </div>
+                </v-tab-item>
+                <v-tab-item>
+                    <div class="mx-4">
+                        <v-card
+                                :key="utxo.pointer.tx_id"
+                                class="my-2"
+                                tile
+                                v-for="(utxo,i) in utxos"
+                        >
+                            <v-card-title>
+                                UTXO #{{i}}
+                            </v-card-title>
+                            <v-card-text>
+                                {{utxo}}
+                            </v-card-text>
+                        </v-card>
+                    </div>
+                </v-tab-item>
+                <v-tab-item>
+                    <div class="mx-4">
+                        <v-card :key="tx" class="my-2" tile v-for="(tx,i) in mempool">
+                            <v-card-title>
+                                Tx #{{i}}
+                            </v-card-title>
+                            <v-card-text>
+                                {{tx}}
+                            </v-card-text>
+                        </v-card>
+                    </div>
+                </v-tab-item>
+                <v-tab-item>
+                    <div class="mx-4">
+                        <v-card :key="tx" class="my-2" tile v-for="(tx,i) in txs">
+                            <v-card-title>
+                                Tx #{{i}}
+                            </v-card-title>
+                            <v-card-text>
+                                {{tx}}
+                            </v-card-text>
+                        </v-card>
+                    </div>
+                </v-tab-item>
+            </v-tabs-items>
+        </v-content>
+
+        <v-footer absolute app color="primary lighten-1" padless>
+            <v-row justify="center" no-gutters>
+                <v-col
+                        class="primary lighten-2 py-4 text-center white--text"
+                        cols="12"
+                >©{{ new Date().getFullYear() }}
+                </v-col
+                >
+            </v-row>
+        </v-footer>
+        <v-dialog v-model="dialog" width="800px">
+            <v-card>
+                <v-card-title class="primary">
+                    创建交易
+                </v-card-title>
+                <v-container>
+                    <v-col cols="12">
+                        <v-alert text="alert_msg" type="error" v-if="alert"></v-alert>
+                    </v-col>
+                    <v-row class="mx-2">
+                        <v-col cols="12">
+                            <v-text-field
+                                    label="对方地址"
+                                    prepend-icon="mdi-mail"
+                                    v-model="to_addr"
+                            />
+                        </v-col>
+                        <v-col cols="12">
+                            <v-text-field
+                                    label="金额"
+                                    prepend-icon="mdi-text"
+                                    v-model="value"
+                            />
+                        </v-col>
+                    </v-row>
+                </v-container>
+                <v-card-actions>
+                    <v-btn @click="dialog = false;alert = false;" text>取消</v-btn>
+                    <v-btn @click="createTransaction" color="primary" text
+                    >确定
+                    </v-btn
+                    >
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+    </v-app>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 <script>
-  new Vue({
-    el: "#app",
-    vuetify: new Vuetify(),
-    props: {
-      source: String
-    },
-    data: () => ({
-      dialog: false,
-      drawer: null,
-      items: [
-        {icon: "mdi-contacts", text: "Contacts"},
-        {icon: "mdi-history", text: "Frequently contacted"},
-        {icon: "mdi-content-copy", text: "Duplicates"},
-        {
-          icon: "mdi-chevron-up",
-          "icon-alt": "mdi-chevron-down",
-          text: "Labels",
-          model: true,
-          children: [{icon: "mdi-plus", text: "Create label"}]
+    new Vue({
+        el: "#app",
+        vuetify: new Vuetify(),
+        props: {
+            source: String
         },
-        {
-          icon: "mdi-chevron-up",
-          "icon-alt": "mdi-chevron-down",
-          text: "More",
-          model: false,
-          children: [
-            {text: "Import"},
-            {text: "Export"},
-            {text: "Print"},
-            {text: "Undo changes"},
-            {text: "Other contacts"}
-          ]
-        },
-        {icon: "mdi-settings", text: "Settings"},
-        {icon: "mdi-message", text: "Send feedback"},
-        {icon: "mdi-help-circle", text: "Help"},
-        {icon: "mdi-cellphone-link", text: "App downloads"},
-        {icon: "mdi-keyboard", text: "Go to the old version"}
-      ]
-    })
-  });
+        data: () => ({
+            wallet: null,
+            balance: 0,
+            error: null,
+            tab: 0,
+            tabs: ["区块链", "UTXO集", "交易池", "离线交易"],
+            chain: null,
+            utxos: null,
+            mempool: null,
+            txs: null,
+            dialog: false,
+            to_addr: null,
+            value: null,
+            alert: false,
+            alert_msg: "",
+            debug: ""
+        }),
+        methods: {
+            loadWallet: async function () {
+                try {
+                    const response = await axios.get("/wallet");
+                    this.wallet = {
+                        addr: response.data.addr,
+                        pk: response.data.pk,
+                        sk: response.data.sk
+                    };
+                    this.balance = response.data.balance;
+                    this.show = true;
+                    console.log(response);
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            },
+            newWallet: async function () {
+                try {
+                    const response = await axios.post("/wallet");
+                    this.wallet = {
+                        addr: response.data.addr,
+                        pk: response.data.pk,
+                        sk: response.data.sk
+                    };
+                    this.balance = response.data.balance;
+                    this.show = true;
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            },
+            loadChain: async function () {
+                try {
+                    const response = await axios.get("/chain");
+                    this.chain = response.data;
+                    this.debug = response.data;
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            },
+            loadUTXO: async function () {
+                try {
+                    const response = await axios.get("/utxo-set");
+                    this.utxos = response.data;
+                    console.log(response);
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            },
+            loadMemPool: async function () {
+                try {
+                    const response = await axios.get("/mem-pool");
+                    this.mempool = response.data;
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            },
+            loadTxs: async function () {
+                try {
+                    const response = await axios.get("/txs");
+                    this.txs = response.data;
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            },
+            changeTab: function (event) {
+                console.log(this.tab);
+                switch (this.tab) {
+                    case 0:
+                        this.loadChain();
+                        break;
+                    case 1:
+                        this.loadUTXO();
+                        break;
+                    case 2:
+                        this.loadMemPool();
+                        break;
+                    case 3:
+                        this.loadTxs();
+                        break;
+                    default:
+                        break;
+                }
+            },
+            createTransaction: async function () {
+                if (this.value == null || this.to_addr == null) {
+                    this.alert_msg = "请填写地址和金额！";
+                    this.alert = true;
+                    console.log(this.alert_msg);
+                    return;
+                } else if (this.value > this.balance) {
+                    this.alert_msg = "余额不足！";
+                    this.alert = true;
+                    console.log(this.alert_msg);
+                    return;
+                }
+                this.alert = false;
+                try {
+                    const response = await axios.post("/transaction", {
+                        addr: this.addr,
+                        value: this.value
+                    });
+                    this.txs = response.data;
+                } catch (error) {
+                    console.log(error);
+                    this.error = error.message;
+                }
+            }
+        }
+    });
 </script>
 </body>
 </html>
