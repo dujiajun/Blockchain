@@ -5,6 +5,7 @@ from flask_cors import CORS
 
 from peer import Peer, Tx
 from utils.json_utils import MyJSONEncoder
+from utils.log import logger
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +19,32 @@ peer.create_genesis_block()
 @app.route('/')
 def hello_world():
     return send_from_directory('ui', 'node.html')
+
+
+@app.route('/save-data', methods=['POST'])
+def save_data():
+    try:
+        peer.wallet.save_keys()
+        peer.save_data()
+        res = True
+    except Exception as e:
+        logger.debug(e)
+        res = False
+    response = {'message': res}
+    return jsonify(response)
+
+
+@app.route('/load-data', methods=['POST'])
+def load_data():
+    try:
+        peer.wallet.load_keys()
+        peer.load_data()
+        res = True
+    except Exception as e:
+        logger.debug(e)
+        res = False
+    response = {'message': res}
+    return jsonify(response)
 
 
 @app.route('/wallet', methods=['GET'])
@@ -111,7 +138,7 @@ def receive_transaction():
     txs_str = request.form.get('txs', type=str)
     txs = json.loads(txs_str)
     for tx in txs:
-        tx = Tx.load_from_dict(tx)
+        tx = Tx.from_dict(tx)
         res = peer.receive_transaction(tx)
         if not res:
             print("交易" + str(tx) + "验证失败")
@@ -130,4 +157,4 @@ def broadcast_txs():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0')

@@ -1,12 +1,16 @@
+import json
+
 import ecdsa
 
 from params import Params
 from utils.hash_utils import convert_pubkey_to_addr, build_message
+from utils.json_utils import MyJSONEncoder
+from utils.printable import Printable
 
 
-class Wallet:
+class Wallet(Printable):
     """
-    管理公私钥对、地址的密钥对
+    管理公私钥对、地址的钱包
     """
 
     def __init__(self):
@@ -44,9 +48,26 @@ class Wallet:
         signature = build_message(string)
         return signature
 
+    def save_keys(self):
+        if self.sk is None:
+            return
+        with open('wallet.txt', mode='w', encoding='utf-8') as f:
+            f.write(self.sk.to_string().hex())
+
+    def load_keys(self):
+        with open('wallet.txt', mode='r', encoding='utf-8') as f:
+            key = f.readlines()[0]
+            self.sk = ecdsa.SigningKey.from_string(bytes.fromhex(key), curve=Params.CURVE)
+            self.pk = self.sk.get_verifying_key()
+            self.addr = convert_pubkey_to_addr(self.pk.to_string())
+
 
 if __name__ == '__main__':
     wallet = Wallet()
     wallet.generate_key()
-    res = wallet.sign(b"hello")
-    print(res)
+    wallet.save_keys()
+    print(json.dumps(wallet, cls=MyJSONEncoder))
+    wallet.generate_key()
+    print(json.dumps(wallet, cls=MyJSONEncoder))
+    wallet.load_keys()
+    print(json.dumps(wallet, cls=MyJSONEncoder))

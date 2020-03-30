@@ -109,16 +109,7 @@ class Tx(Printable):
         return sha256d(f"{self.tx_in}{self.tx_out}")
 
     @classmethod
-    def load_from_string(cls, string):
-        """
-        从JSON文本构造Tx对象
-        :param string: 文本
-        :return: Tx对象
-        """
-        return Tx.load_from_dict(eval(string))
-
-    @classmethod
-    def load_from_dict(cls, dic):
+    def from_dict(cls, dic):
         """
         从字典对象构造Tx对象
         :param dic: 字典对象
@@ -128,8 +119,7 @@ class Tx(Printable):
                      bytes.fromhex(vin['signature']), bytes.fromhex(vin['pubkey']))
                  for vin in dic['tx_in']]
         tx_out = [Vout(vout['to_addr'], vout['value']) for vout in dic['tx_out']]
-        tmp = Tx(tx_in, tx_out)
-        return tmp
+        return Tx(tx_in, tx_out)
 
 
 class UTXO(Printable):
@@ -156,6 +146,17 @@ class UTXO(Printable):
         :return: 新的UTXO对象，用于修改UTXO状态
         """
         return UTXO(self.vout, self.pointer, self.is_coinbase, unspent, confirmed)
+
+    @classmethod
+    def from_dict(cls, dic):
+        """
+        从字典对象构造UTXO对象
+        :param dic: 字典对象
+        :return: UTXO对象
+        """
+        pointer = Pointer(dic['pointer']['tx_id'], dic['pointer']['n'])
+        vout = Vout(dic['vout']['to_addr'], dic['vout']['value'])
+        return UTXO(vout, pointer, dic['is_coinbase'], dic['unspent'], dic['confirmed'])
 
 
 if __name__ == '__main__':
