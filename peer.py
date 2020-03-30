@@ -261,3 +261,33 @@ class Peer:
         self.__utxos_from_vouts.clear()
         self.__pointers_from_vouts.clear()
         self.__txs_removed.clear()
+
+    def save_data(self):
+        with open('blockchain.txt', mode='w', encoding='utf-8') as f:
+            f.write(json.dumps(self.chain, cls=MyJSONEncoder))
+            f.write('\n')
+            f.write(json.dumps(self.txs, cls=MyJSONEncoder))
+            f.write('\n')
+            f.write(json.dumps(self.mem_pool, cls=MyJSONEncoder))
+            f.write('\n')
+            utxos = [utxo for utxo in self.utxo_set.values()]
+            f.write(json.dumps(utxos, cls=MyJSONEncoder))
+            f.write('\n')
+
+    def load_data(self):
+        with open('blockchain.txt', mode='r', encoding='utf-8') as f:
+            lines = f.readlines()
+            self.chain = json.loads(lines[0])
+            self.txs = json.loads(lines[1])
+            self.mem_pool = json.loads(lines[2])
+            utxos = json.loads(lines[3])
+            self.utxo_set.clear()
+            for utxo_dic in utxos:
+                utxo = UTXO.from_dict(utxo_dic)
+                self.utxo_set[utxo.pointer] = utxo
+
+
+if __name__ == '__main__':
+    peer = Peer()
+    peer.generate_key()
+    peer.save_data()
