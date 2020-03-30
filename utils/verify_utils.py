@@ -48,10 +48,10 @@ def verify_signature_for_vin(vin, utxo, tx_out):
     pk_as_addr = convert_pubkey_to_addr(pk_str)
     if pk_as_addr != to_addr:  # 地址是否匹配
         return False
-    vk = ecdsa.VerifyingKey.from_string(pk_str)
+    vk = ecdsa.VerifyingKey.from_string(pk_str, curve=Params.CURVE)
     message = Wallet.create_signature(pk_str, vin.to_spend, tx_out)
     try:
-        vk.verify(message, sig)  # 数字签名是否匹配
+        vk.verify(sig, message)  # 数字签名是否匹配
         return True
     except ecdsa.BadSignatureError:
         return False
@@ -72,7 +72,7 @@ def verify_tx(tx, utxo_set, mem_pool, orphan_pool):
         return False
     available_value = 0
     for vin in tx.tx_in:
-        utxo = utxo_set[vin.to_spend]
+        utxo = utxo_set.get(vin.to_spend, None)
         if not utxo:  # UTXO不存在就加入到孤儿交易池中
             orphan_pool[tx.id] = tx
             return False

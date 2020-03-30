@@ -1,9 +1,11 @@
+import json
 from typing import Dict
 
 import requests
 
 from consensus import mine
 from transaction import Vout, Vin
+from utils.json_utils import MyJSONEncoder
 from utils.transaction_utils import *
 from utils.verify_utils import *
 from wallet import Wallet
@@ -14,7 +16,7 @@ class Peer:
 
     def __init__(self):
         self.chain = []
-        self.txs = []  # 候选区块的交易
+        self.txs = []  # 离线交易
         self.peer_nodes = set()
         self.utxo_set: Dict[Pointer, UTXO] = {}
         self.mem_pool: Dict[str, Tx] = {}
@@ -94,7 +96,8 @@ class Peer:
         else:
             tx_out.append(Vout(to_addr=to_addr, value=value))
         for utxo in utxos[:n]:
-            signature = self.wallet.create_signature(self.pk, utxo.pointer, tx_out)
+            message = self.wallet.create_signature(self.pk, utxo.pointer, tx_out)
+            signature = self.wallet.sign(message)
             tx_in.append(Vin(to_spend=utxo.pointer, signature=signature, pubkey=self.pk))
             self.utxo_set[utxo.pointer] = utxo.replace(unspent=False)
         tx = Tx(tx_in=tx_in, tx_out=tx_out)
@@ -106,7 +109,9 @@ class Peer:
         广播交易
         :param tx: 交易
         """
-        payload = {'transaction': str(tx)}
+        # add_tx_to_mem_pool(self, tx)
+        payload = {'tx': str(tx)}
+
         for node in self.peer_nodes:
             url = f"http://{node}/broadcast-transaction"
             requests.post(url, payload)
@@ -123,6 +128,22 @@ class Peer:
                 add_tx_to_mem_pool(self, tx)
                 return True
         return False
+
+    def broadcast_txs(self):
+        if len(self.txs) == 0:
+            return False
+        if len(self.peer_nodes) == 0:
+            return False
+        # for tx in self.txs:
+        #     add_tx_to_mem_pool(self, tx)
+
+        payload = {'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
+        print(payload)
+        for node in self.peer_nodes:
+            url = f"http://{node}/broadcast-transaction"
+            requests.post(url, payload)
+            # TODO
+        return True
 
     def create_genesis_block(self):
         """
@@ -178,7 +199,7 @@ class Peer:
         """
         payload = {'block': str(block)}
         for node in self.peer_nodes:
-            url = f"http://{node}/broadcast-transaction"
+            url = f"http://{node}/broadcast-block"
             requests.post(url, payload)
             # TODO
 

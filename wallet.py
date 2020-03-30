@@ -28,8 +28,11 @@ class Wallet:
         self.pk = self.sk.get_verifying_key()
         self.addr = convert_pubkey_to_addr(self.pk.to_string())
 
+    def sign(self, message):
+        return self.sk.sign(message)
+
     @classmethod
-    def create_signature(self, pk, pointer, tx_out):
+    def create_signature(cls, pk, pointer, tx_out):
         """
         创建签名
         :param pk: 公钥字符串
@@ -40,3 +43,10 @@ class Wallet:
         string = str(pointer) + str(pk) + str(tx_out)
         signature = build_message(string)
         return signature
+
+
+if __name__ == '__main__':
+    wallet = Wallet()
+    wallet.generate_key()
+    res = wallet.sign(b"hello")
+    print(res)

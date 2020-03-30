@@ -18,6 +18,14 @@ class Pointer(Printable):
         self.tx_id = tx_id
         self.n = n
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.tx_id == other.tx_id and self.n == other.n
+        return False
+
+    def __hash__(self):
+        return hash((self.tx_id, self.n))
+
 
 class Vin(Printable):
     """
@@ -107,8 +115,20 @@ class Tx(Printable):
         :param string: 文本
         :return: Tx对象
         """
-        tmp = Tx()
-        tmp.__dict__.update(eval(string))
+        return Tx.load_from_dict(eval(string))
+
+    @classmethod
+    def load_from_dict(cls, dic):
+        """
+        从字典对象构造Tx对象
+        :param dic: 字典对象
+        :return: Tx对象
+        """
+        tx_in = [Vin(Pointer(vin['to_spend']['tx_id'], vin['to_spend']['n']),
+                     bytes.fromhex(vin['signature']), bytes.fromhex(vin['pubkey']))
+                 for vin in dic['tx_in']]
+        tx_out = [Vout(vout['to_addr'], vout['value']) for vout in dic['tx_out']]
+        tmp = Tx(tx_in, tx_out)
         return tmp
 
 

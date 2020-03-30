@@ -7,6 +7,7 @@
     <orderEntry type="library" name="vue" level="application" />
     <orderEntry type="library" name="vuetify" level="application" />
     <orderEntry type="library" name="materialdesignicons" level="application" />
+    <orderEntry type="library" name="axios" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_FOLDERS">
