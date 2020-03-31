@@ -259,10 +259,13 @@ class Peer:
             f.write('\n')
             f.write(json.dumps(self.txs, cls=MyJSONEncoder))
             f.write('\n')
-            f.write(json.dumps(self.mem_pool, cls=MyJSONEncoder))
+            pool_txs = self.mem_pool.values()
+            f.write(json.dumps(pool_txs, cls=MyJSONEncoder))
             f.write('\n')
             utxos = [utxo for utxo in self.utxo_set.values()]
             f.write(json.dumps(utxos, cls=MyJSONEncoder))
+            f.write('\n')
+            f.write(json.dumps(self.peer_nodes))
             f.write('\n')
 
     def load_data(self):
@@ -274,9 +277,9 @@ class Peer:
             txs = json.loads(lines[1])
             self.txs = [Tx.from_dict(tx) for tx in txs]
 
-            mem_pool = json.loads(lines[2])
+            pool_txs = json.loads(lines[2])
             self.mem_pool.clear()
-            for tx_dic in mem_pool.values():
+            for tx_dic in pool_txs:
                 tx = Tx.from_dict(tx_dic)
                 self.mem_pool[tx.id] = tx
 
@@ -285,6 +288,8 @@ class Peer:
             for utxo_dic in utxos:
                 utxo = UTXO.from_dict(utxo_dic)
                 self.utxo_set[utxo.pointer] = utxo
+
+            self.peer_nodes = json.loads(lines[4])
 
 
 if __name__ == '__main__':

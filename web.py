@@ -62,7 +62,6 @@ def get_keys():
         'sk': peer.sk.hex() if peer.sk else None,
         'balance': peer.get_balance()
     }
-    # print(response)
     return jsonify(response)
 
 
@@ -92,7 +91,6 @@ def get_mem_pool():
 @app.route('/utxo-set', methods=['GET'])
 def get_utxo_set():
     response = [utxo for utxo in peer.utxo_set.values()]
-    # print(response)
     return jsonify(response)
 
 
@@ -105,7 +103,6 @@ def get_txs():
 @app.route('/peers', methods=['GET'])
 def get_peers():
     response = [node for node in peer.peer_nodes]
-    # print(response)
     return jsonify(response)
 
 
@@ -117,7 +114,6 @@ def add_peer():
         return jsonify(response)
     peer.peer_nodes.add(peer_node)
     response = [node for node in peer.peer_nodes]
-    # print(response)
     return jsonify(response)
 
 
@@ -149,7 +145,6 @@ def receive_transaction():
         res = peer.receive_transaction(tx)
         if not res:
             logger.debug("交易" + str(tx) + "验证失败")
-    # print("broadcast-transaction: " + txs)
     response = {'message': '已广播！'}
     return jsonify(response)
 
