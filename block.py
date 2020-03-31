@@ -1,4 +1,5 @@
 from params import Params
+from transaction import Tx
 from utils.hash_utils import sha256d
 from utils.printable import Printable
 
@@ -49,3 +50,8 @@ class Block(Printable):
         :return: 新区块
         """
         return Block(self.timestamp, self.prev_hash, nonce or self.nonce, self.bits, self.merkle_root, self.txs)
+
+    @classmethod
+    def load_from_dic(cls, dic):
+        txs = [Tx.from_dict(dic) for dic in dic['txs']]
+        return Block(dic['timestamp'], dic['prev_hash'], dic['nonce'], dic['bits'], dic['merkle_root'], txs)

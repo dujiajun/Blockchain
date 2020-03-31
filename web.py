@@ -1,4 +1,5 @@
 import json
+from os.path import exists
 
 from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
@@ -12,8 +13,14 @@ CORS(app)
 app.json_encoder = MyJSONEncoder
 
 peer = Peer()
-peer.generate_key()
-peer.create_genesis_block()
+if exists('wallet.txt'):
+    peer.wallet.load_keys()
+else:
+    peer.generate_key()
+if exists('genesis_block.txt'):
+    peer.load_genesis_block()
+if exists('blockchain.txt'):
+    peer.load_data()
 
 
 @app.route('/')

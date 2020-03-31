@@ -115,9 +115,17 @@ class Tx(Printable):
         :param dic: 字典对象
         :return: Tx对象
         """
-        tx_in = [Vin(Pointer(vin['to_spend']['tx_id'], vin['to_spend']['n']),
-                     bytes.fromhex(vin['signature']), bytes.fromhex(vin['pubkey']))
-                 for vin in dic['tx_in']]
+        tx_in = []
+        for vin in dic['tx_in']:
+            if vin['to_spend']:
+                pointer = Pointer(vin['to_spend']['tx_id'], vin['to_spend']['n'])
+            else:
+                pointer = None
+            if vin['pubkey']:
+                pubkey = bytes.fromhex(vin['pubkey'])
+            else:
+                pubkey = None
+            tx_in.append(Vin(pointer, bytes.fromhex(vin['signature']), pubkey))
         tx_out = [Vout(vout['to_addr'], vout['value']) for vout in dic['tx_out']]
         return Tx(tx_in, tx_out)
 

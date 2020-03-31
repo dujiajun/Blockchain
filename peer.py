@@ -145,25 +145,15 @@ class Peer:
             # TODO
         return True
 
-    def create_genesis_block(self):
-        """
-        初始化创世区块
-        """
-        tx_in = [Vin(to_spend=None,
-                     signature=b'I love blockchain',
-                     pubkey=None)]
-
-        tx_out = [Vout(value=Params.INITIAL_MONEY, to_addr=self.addr)]
-
-        txs = [Tx(tx_in=tx_in, tx_out=tx_out)]
-        genesis_block = Block(prev_hash=None,
-                              timestamp=12345,
-                              bits=0,
-                              nonce=0,
-                              txs=txs)
-        self.chain.append(genesis_block)
-        utxos = find_utxos_from_block(txs)
-        add_utxos_to_set(self.utxo_set, utxos)
+    def load_genesis_block(self):
+        """加载创世区块"""
+        with open('genesis_block.txt', mode='r') as f:
+            line = f.readlines()[0]
+            block_dic = json.loads(line)
+            block = Block.load_from_dic(block_dic)
+            self.chain = [block]
+            utxos = find_utxos_from_block(block.txs)
+            add_utxos_to_set(self.utxo_set, utxos)
 
     def create_candidate_block(self):
         """
@@ -263,6 +253,7 @@ class Peer:
         self.__txs_removed.clear()
 
     def save_data(self):
+        """将节点状态保存到文件"""
         with open('blockchain.txt', mode='w', encoding='utf-8') as f:
             f.write(json.dumps(self.chain, cls=MyJSONEncoder))
             f.write('\n')
@@ -275,11 +266,20 @@ class Peer:
             f.write('\n')
 
     def load_data(self):
+        """从文件恢复节点状态"""
         with open('blockchain.txt', mode='r', encoding='utf-8') as f:
             lines = f.readlines()
-            self.chain = json.loads(lines[0])
-            self.txs = json.loads(lines[1])
-            self.mem_pool = json.loads(lines[2])
+            chain = json.loads(lines[0])
+            self.chain = [Block.load_from_dic(block) for block in chain]
+            txs = json.loads(lines[1])
+            self.txs = [Tx.from_dict(tx) for tx in txs]
+
+            mem_pool = json.loads(lines[2])
+            self.mem_pool.clear()
+            for tx_dic in mem_pool.values():
+                tx = Tx.from_dict(tx_dic)
+                self.mem_pool[tx.id] = tx
+
             utxos = json.loads(lines[3])
             self.utxo_set.clear()
             for utxo_dic in utxos:
