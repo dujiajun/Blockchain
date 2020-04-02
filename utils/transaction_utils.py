@@ -170,3 +170,16 @@ def confirm_utxos_from_txs(utxo_set, txs, allow_utxo_from_pool):
         pointers = find_vout_pointer_from_txs(txs)
         add_utxos_to_set(utxo_set, utxos)
         return pointers, []
+
+
+def sign_utxo_from_tx(utxo_set, tx):
+    """
+    从UTXO集合中将tx花费的UTXO标记出来
+    :param utxo_set: UTXO集合
+    :param tx: 交易
+    """
+    for vin in tx.tx_in:
+        pointer = vin.to_spend
+        utxo = utxo_set[pointer]
+        utxo = utxo.replace(unspent=False)
+        utxo_set[pointer] = utxo

@@ -1,10 +1,11 @@
 import json
+from argparse import ArgumentParser
 from os.path import exists
 
 from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 
-from peer import Peer, Tx
+from peer import Peer, Tx, Block
 from utils.json_utils import MyJSONEncoder
 from utils.log import logger
 
@@ -96,7 +97,6 @@ def get_utxo_set():
 
 @app.route('/txs', methods=['GET'])
 def get_txs():
-    print(peer.txs)
     return jsonify(peer.txs)
 
 
@@ -112,7 +112,7 @@ def add_peer():
     if not peer_node:
         response = {'message': '参数错误！'}
         return jsonify(response)
-    peer.peer_nodes.add(peer_node)
+    peer.add_peer(peer_node)
     response = [node for node in peer.peer_nodes]
     return jsonify(response)
 
@@ -136,15 +136,21 @@ def create_transaction():
         return jsonify(response)
 
 
-@app.route('/broadcast-transaction', methods=['POST'])
+@app.route('/receive-transaction', methods=['POST'])
 def receive_transaction():
+    src_addr = request.remote_addr
+    src_port = request.form.get('port', type=int, default=None)
+    peer.add_peer(src_addr, src_port)
     txs_str = request.form.get('txs', type=str)
+    if txs_str is None:
+        response = {'message': '参数错误！'}
+        return jsonify(response)
     txs = json.loads(txs_str)
     for tx in txs:
         tx = Tx.from_dict(tx)
         res = peer.receive_transaction(tx)
         if not res:
-            logger.debug("交易" + str(tx) + "验证失败")
+            logger.debug("交易验证失败或已在交易池中！：" + str(tx))
     response = {'message': '已广播！'}
     return jsonify(response)
 
@@ -158,5 +164,55 @@ def broadcast_txs():
     return jsonify(response)
 
 
+@app.route('/candidate-block', methods=['GET'])
+def get_candidate_block():
+    return jsonify(peer.candidate_block)
+
+
+@app.route('/candidate-block', methods=['POST'])
+def create_candidate_block():
+    peer.create_candidate_block()
+    return jsonify(peer.candidate_block)
+
+
+@app.route('/mine', methods=['POST'])
+def mine():
+    logger.debug("Mining starts!")
+    peer.consensus()
+    logger.debug("Mining ends!")
+    return jsonify(peer.candidate_block)
+
+
+@app.route('/receive-block', methods=['POST'])
+def receive_block():
+    src_addr = request.remote_addr
+    src_port = request.form.get('port', type=int, default=None)
+    peer.add_peer(src_addr, src_port)
+    block_str = request.form.get('block', type=str)
+    if block_str is None:
+        response = {'message': '参数错误！'}
+        return jsonify(response)
+    block = Block.load_from_dic(json.loads(block_str))
+    res = peer.receive_block(block)
+    if not res:
+        logger.debug("区块验证失败：" + str(block))
+    response = {'message': '已广播！'}
+    return jsonify(response)
+
+
+@app.route('/broadcast-block', methods=['POST'])
+def broadcast_block():
+    if peer.broadcast_block():
+        response = {'message': '已广播！'}
+    else:
+        response = {'message': '未广播！'}
+    return jsonify(response)
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--port', type=int, default=5000)
+    args = parser.parse_args()
+    port = args.port
+    peer.port = port
+    app.run(host='0.0.0.0', port=port)

@@ -1,3 +1,5 @@
+from time import time
+
 from params import Params
 from transaction import Tx
 from utils.hash_utils import sha256d
@@ -21,12 +23,29 @@ class Block(Printable):
         :type txs: list[Tx]
         """
         self.version = 0
-        self.timestamp = timestamp or 0
+        self.timestamp = timestamp or int(time())
         self.prev_hash = prev_hash
         self.nonce = nonce
         self.bits = bits
         self.merkle_root = merkle_root
         self.txs = txs
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if self.header() != other.header():
+                return False
+            if self.txs is None and other.txs is None:
+                return True
+            if isinstance(self.txs, list) and isinstance(other.txs, list):
+                if len(self.txs) != len(other.txs):
+                    return False
+                for i, tx in enumerate(self.txs):
+                    if tx.id != other.txs[i].id:
+                        return False
+                return True
+            else:
+                return False
+        return False
 
     def header(self, nonce=None) -> str:
         """
@@ -53,5 +72,7 @@ class Block(Printable):
 
     @classmethod
     def load_from_dic(cls, dic):
+        if dic is None or len(dic) == 0:
+            return None
         txs = [Tx.from_dict(dic) for dic in dic['txs']]
         return Block(dic['timestamp'], dic['prev_hash'], dic['nonce'], dic['bits'], dic['merkle_root'], txs)

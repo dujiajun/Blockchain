@@ -25,6 +25,7 @@ class Peer:
         self.allow_utxo_from_pool = True
         self.orphan_block = []
         self.candidate_block = None
+        self.port = 5000
         self.__utxos_from_vins = []
         self.__utxos_from_vouts = []
         self.__pointers_from_vouts = []
@@ -99,17 +100,17 @@ class Peer:
             message = self.wallet.create_signature(self.pk, utxo.pointer, tx_out)
             signature = self.wallet.sign(message)
             tx_in.append(Vin(to_spend=utxo.pointer, signature=signature, pubkey=self.pk))
-            self.utxo_set[utxo.pointer] = utxo.replace(unspent=False)
+            # self.utxo_set[utxo.pointer] = utxo.replace(unspent=False)
         tx = Tx(tx_in=tx_in, tx_out=tx_out)
         self.txs.append(tx)
         return True
 
     def broadcast_transaction(self, tx):
         """
-        广播交易
+        广播单条交易
         :param tx: 交易
         """
-        # add_tx_to_mem_pool(self, tx)
+        add_tx_to_mem_pool(self, tx)  # 离线交易进入交易池
         payload = {'tx': str(tx)}
 
         for node in self.peer_nodes:
@@ -123,26 +124,32 @@ class Peer:
         :param tx: 交易
         :return: 是否成功
         """
-        if tx and (tx not in self.mem_pool):
+        if isinstance(tx, Tx) and (tx.id not in self.mem_pool):
             if verify_tx(tx, self.utxo_set, self.mem_pool, self.orphan_pool):
+                sign_utxo_from_tx(self.utxo_set, tx)
                 add_tx_to_mem_pool(self, tx)
                 return True
         return False
 
     def broadcast_txs(self):
+        """广播所有离线交易"""
+        # 无需广播
         if len(self.txs) == 0:
             return False
         if len(self.peer_nodes) == 0:
             return False
-        # for tx in self.txs:
-        #     add_tx_to_mem_pool(self, tx)
 
-        payload = {'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
-        print(payload)
+        # 离线交易进入交易池
+        for tx in self.txs:
+            sign_utxo_from_tx(self.utxo_set, tx)
+            add_tx_to_mem_pool(self, tx)
+
+        # 广播时让对方发现自己端口号（request可获取IP地址）
+        payload = {'port': self.port, 'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
         for node in self.peer_nodes:
-            url = f"http://{node}/broadcast-transaction"
+            url = f"http://{node}/receive-transaction"
             requests.post(url, payload)
-            # TODO
+        self.txs.clear()
         return True
 
     def load_genesis_block(self):
@@ -166,7 +173,7 @@ class Peer:
         value = Params.MINING_REWARDS  # TODO 交易费
         coinbase = Tx.create_coinbase(self.addr, value)
         txs = [coinbase] + txs
-        self.candidate_block = Block(timestamp=None, prev_hash=prev_hash, nonce=0,
+        self.candidate_block = Block(prev_hash=prev_hash, nonce=0,
                                      bits=Params.DIFFICULTY_BITS, txs=txs)  # TODO 时戳
 
     def consensus(self):
@@ -178,20 +185,22 @@ class Peer:
             self.create_candidate_block()
         block = self.candidate_block
         nonce = mine(block)
-        block = block.replace(nonce)
-        return block
+        self.candidate_block = block.replace(nonce=nonce)
 
-    def broadcast_block(self, block):
+    def broadcast_block(self):
         """
         广播区块
-        :param block: 区块
-        :return:
         """
-        payload = {'block': str(block)}
+        # 无需广播
+        if self.candidate_block is None:
+            return False
+        payload = {'port': self.port, 'block': json.dumps(self.candidate_block, cls=MyJSONEncoder)}
         for node in self.peer_nodes:
-            url = f"http://{node}/broadcast-block"
+            url = f"http://{node}/receive-block"
             requests.post(url, payload)
             # TODO
+        # self.candidate_block = None
+        return True
 
     def receive_block(self, block):
         """
@@ -259,13 +268,15 @@ class Peer:
             f.write('\n')
             f.write(json.dumps(self.txs, cls=MyJSONEncoder))
             f.write('\n')
-            pool_txs = self.mem_pool.values()
+            pool_txs = list(self.mem_pool.values())
             f.write(json.dumps(pool_txs, cls=MyJSONEncoder))
             f.write('\n')
             utxos = [utxo for utxo in self.utxo_set.values()]
             f.write(json.dumps(utxos, cls=MyJSONEncoder))
             f.write('\n')
-            f.write(json.dumps(self.peer_nodes))
+            f.write(json.dumps(list(self.peer_nodes)))
+            f.write('\n')
+            f.write(json.dumps(self.candidate_block, cls=MyJSONEncoder))
             f.write('\n')
 
     def load_data(self):
@@ -289,7 +300,15 @@ class Peer:
                 utxo = UTXO.from_dict(utxo_dic)
                 self.utxo_set[utxo.pointer] = utxo
 
-            self.peer_nodes = json.loads(lines[4])
+            self.peer_nodes = set(json.loads(lines[4]))
+            self.candidate_block = Block.load_from_dic(json.loads(lines[5]))
+
+    def add_peer(self, addr: str, port: int = None):
+        """添加广播邻居"""
+        if port is None:
+            self.peer_nodes.add(f'{addr}')
+        else:
+            self.peer_nodes.add(f'{addr}:{port}')
 
 
 if __name__ == '__main__':

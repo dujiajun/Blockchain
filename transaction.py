@@ -98,7 +98,7 @@ class Tx(Printable):
         :param value: 金额
         :return: 交易
         """
-        return Tx(tx_in=[Vin(to_spend=None, signature=str(os.urandom(32)), pubkey=None)],
+        return Tx(tx_in=[Vin(to_spend=None, signature=os.urandom(32), pubkey=None)],
                   tx_out=[Vout(to_addr=pay_to_addr, value=value)])
 
     @property
@@ -115,6 +115,8 @@ class Tx(Printable):
         :param dic: 字典对象
         :return: Tx对象
         """
+        if dic is None or len(dic) == 0:
+            return None
         tx_in = []
         for vin in dic['tx_in']:
             if vin['to_spend']:
@@ -128,6 +130,11 @@ class Tx(Printable):
             tx_in.append(Vin(pointer, bytes.fromhex(vin['signature']), pubkey))
         tx_out = [Vout(vout['to_addr'], vout['value']) for vout in dic['tx_out']]
         return Tx(tx_in, tx_out)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+        return False
 
 
 class UTXO(Printable):
@@ -162,6 +169,8 @@ class UTXO(Printable):
         :param dic: 字典对象
         :return: UTXO对象
         """
+        if dic is None or len(dic) == 0:
+            return None
         pointer = Pointer(dic['pointer']['tx_id'], dic['pointer']['n'])
         vout = Vout(dic['vout']['to_addr'], dic['vout']['value'])
         return UTXO(vout, pointer, dic['is_coinbase'], dic['unspent'], dic['confirmed'])

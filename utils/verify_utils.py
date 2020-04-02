@@ -154,6 +154,7 @@ def verify_block_txs(block, reward):
     # 第1条交易需要是创币交易
     if not verify_coinbase(txs[0], reward):
         return False
+    return True
 
 
 def verify_block(peer, block):
@@ -163,9 +164,11 @@ def verify_block(peer, block):
     :param block: 区块
     :return: 是否合法
     """
+    # if block == peer.candidate_block:
+    #     return True
     if not verify_block_basic(block):
         return False
-    if not verify_block_txs(block, Params.MINING_REWARDS):
+    if not verify_block_txs(block, Params.MINING_REWARDS):  # TODO 交易费
         return False
     block_txs = block.txs[1:]
     if verify_double_payment_in_block(block_txs):
@@ -184,6 +187,6 @@ def locate_block_by_hash(chain, block_hash):
     :return: 区块的高度
     """
     for height, block in enumerate(chain):
-        if block.prev_hash == block_hash:
+        if block.hash == block_hash:
             return height + 1
     return -1
