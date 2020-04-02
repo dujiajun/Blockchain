@@ -54,16 +54,13 @@
         <div class="d-flex flex-wrap mx-4">
           <v-btn @click="update" class="mx-2 my-2" color="primary"
           >刷新状态
-          </v-btn
-          >
+          </v-btn>
           <v-btn @click="saveToFile" class="mx-2 my-2" color="primary"
           >保存状态
-          </v-btn
-          >
+          </v-btn>
           <v-btn @click="loadFromFile" class="mx-2 my-2" color="primary"
           >加载状态
-          </v-btn
-          >
+          </v-btn>
           <v-btn
                   @click="dialog_new_tx = !dialog_new_tx"
                   class="mx-2 my-2"
@@ -78,11 +75,15 @@
           >
             广播交易
           </v-btn>
-          <v-btn @click="" class="mx-2 my-2" color="primary">
+          <v-btn
+                  @click="createCandidateBlock"
+                  class="mx-2 my-2"
+                  color="primary"
+          >
             新建候选区块
           </v-btn>
-          <v-btn class="mx-2 my-2" color="primary">挖矿</v-btn>
-          <v-btn @click="" class="mx-2 my-2" color="primary">
+          <v-btn @click="mine" class="mx-2 my-2" color="primary">挖矿</v-btn>
+          <v-btn @click="broadcastBlock" class="mx-2 my-2" color="primary">
             广播候选区块
           </v-btn>
         </div>
@@ -94,6 +95,14 @@
         <v-tabs-items v-model="tab">
           <v-tab-item>
             <div class="mx-4">
+              <v-card class="my-2" tile v-if="candidate_block!=null">
+                <v-card-title>
+                  候选区块
+                </v-card-title>
+                <v-card-text>
+                  {{candidate_block}}
+                </v-card-text>
+              </v-card>
               <v-card
                       :key="block.prev_hash"
                       class="my-2"
@@ -252,6 +261,7 @@
         error: null,
         tab: 0,
         tabs: ["区块链", "离线交易", "UTXO集", "交易池", "网络邻居"],
+        candidate_block: null,
         chain: [],
         utxos: [],
         mempool: [],
@@ -369,24 +379,24 @@
         },
         changeTab: function (event) {
           /*switch (this.tab) {
-                case 0:
-                  this.loadChain();
-                  break;
-                case 1:
-                  this.loadUTXO();
-                  break;
-                case 2:
-                  this.loadMemPool();
-                  break;
-                case 3:
-                  this.loadTxs();
-                  break;
-                case 4:
-                  this.loadPeers();
-                  break;
-                default:
-                  break;
-              }*/
+              case 0:
+                this.loadChain();
+                break;
+              case 1:
+                this.loadUTXO();
+                break;
+              case 2:
+                this.loadMemPool();
+                break;
+              case 3:
+                this.loadTxs();
+                break;
+              case 4:
+                this.loadPeers();
+                break;
+              default:
+                break;
+            }*/
         },
         createTransaction: async function (addr, value) {
           if (value.trim() == "" || addr.trim() == "") {
@@ -421,6 +431,16 @@
           this.loadMemPool();
           this.loadTxs();
           this.loadPeers();
+          this.loadCandidateBlock();
+        },
+        loadCandidateBlock: async function () {
+          try {
+            const response = await axios.get("/candidate-block");
+            this.candidate_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
         },
         loadPeers: async function () {
           try {
@@ -455,6 +475,44 @@
           }
           try {
             const response = await axios.post("/broadcast-txs");
+            if ("message" in response.data) {
+              this.showSnackbar(response.data.message);
+            }
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        createCandidateBlock: async function () {
+          if (this.mempool.length == 0) {
+            this.showSnackbar("交易池为空！");
+          }
+          try {
+            const response = await axios.post("/candidate-block");
+            this.candidate_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        mine: async function () {
+          if (this.mempool.length == 0) {
+            this.showSnackbar("交易池为空！");
+          }
+          try {
+            const response = await axios.post("/mine");
+            this.candidate_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        broadcastBlock: async function () {
+          if (this.candidate_block == null) {
+            this.showSnackbar("还未创建候选区块！");
+          }
+          try {
+            const response = await axios.post("/broadcast-block");
             if ("message" in response.data) {
               this.showSnackbar(response.data.message);
             }
