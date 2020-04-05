@@ -102,6 +102,7 @@ class Peer:
             tx_in.append(Vin(to_spend=utxo.pointer, signature=signature, pubkey=self.pk))
             # self.utxo_set[utxo.pointer] = utxo.replace(unspent=False)
         tx = Tx(tx_in=tx_in, tx_out=tx_out)
+        logger.info(f"创建交易：{tx}")
         self.txs.append(tx)
         return True
 
@@ -115,6 +116,7 @@ class Peer:
 
         for node in self.peer_nodes:
             url = f"http://{node}/broadcast-transaction"
+            logger.info(f"广播交易：向{node}广播交易")
             requests.post(url, payload)
             # TODO
 
@@ -126,17 +128,21 @@ class Peer:
         """
         if isinstance(tx, Tx) and (tx.id not in self.mem_pool):
             if verify_tx(self, tx, self.mem_pool):
+                logger.info(f"接收交易：验证交易成功：{tx}")
                 sign_utxo_from_tx(self.utxo_set, tx)
                 add_tx_to_mem_pool(self, tx)
                 return True
+        logger.info(f"接收交易：验证交易失败：{tx}")
         return False
 
     def broadcast_txs(self):
         """广播所有离线交易"""
         # 无需广播
         if len(self.txs) == 0:
+            logger.info("广播交易：离线交易为空")
             return False
         if len(self.peer_nodes) == 0:
+            logger.info("广播交易：邻居为空")
             return False
 
         # 离线交易进入交易池
@@ -148,6 +154,7 @@ class Peer:
         payload = {'port': self.port, 'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
         for node in self.peer_nodes:
             url = f"http://{node}/receive-transaction"
+            logger.info(f"广播交易：向{node}广播离线交易")
             requests.post(url, payload)
         self.txs.clear()
         return True
@@ -167,6 +174,7 @@ class Peer:
         构造候选区块
         :return: 区块
         """
+
         prev_hash = self.chain[-1].hash
         txs = list(self.mem_pool.values())
 
@@ -175,6 +183,7 @@ class Peer:
         txs = [coinbase] + txs
         self.candidate_block = Block(prev_hash=prev_hash, nonce=0,
                                      bits=Params.DIFFICULTY_BITS, txs=txs)  # TODO 时戳
+        logger.info(f"创建候选区块：{self.candidate_block}")
 
     def consensus(self):
         """
@@ -184,7 +193,9 @@ class Peer:
         if not self.candidate_block:
             self.create_candidate_block()
         block = self.candidate_block
+        logger.info("共识：开始挖矿！")
         nonce = mine(block)
+        logger.info(f"共识：挖矿结束，nonce={nonce}")
         self.candidate_block = block.replace(nonce=nonce)
 
     def broadcast_block(self):
@@ -193,10 +204,12 @@ class Peer:
         """
         # 无需广播
         if self.candidate_block is None:
+            logger.info("广播区块：未创建候选区块")
             return False
         payload = {'port': self.port, 'block': json.dumps(self.candidate_block, cls=MyJSONEncoder)}
         for node in self.peer_nodes:
             url = f"http://{node}/receive-block"
+            logger.info(f"广播区块：向{node}广播区块")
             requests.post(url, payload)
             # TODO
         # self.candidate_block = None
@@ -217,9 +230,11 @@ class Peer:
         prev_hash = block.prev_hash
         height = locate_block_by_hash(self.chain, prev_hash)
         if height == -1:  # 孤儿区块
+            logger.debug("区块为孤儿区块")
             self.orphan_block.append(block)
             return False
         if height == len(self.chain):  # 父区块在链尾
+            logger.info("添加区块到区块链末尾成功")
             self.chain.append(block)
             self.update_after_receive_block(block.txs)  # 更新UTXO_SET和交易池
             return True

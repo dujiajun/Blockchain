@@ -177,9 +177,7 @@ def create_candidate_block():
 
 @app.route('/mine', methods=['POST'])
 def mine():
-    logger.debug("Mining starts!")
     peer.consensus()
-    logger.debug("Mining ends!")
     return jsonify(peer.candidate_block)
 
 

@@ -5,6 +5,7 @@ from consensus import calculate_target
 from params import Params
 from transaction import Tx
 from utils.hash_utils import convert_pubkey_to_addr
+from utils.log import logger
 from utils.transaction_utils import add_tx_to_mem_pool
 from wallet import Wallet
 
@@ -47,6 +48,7 @@ def verify_signature_for_vin(vin, utxo, tx_out):
     to_addr = utxo.vout.to_addr
     pk_as_addr = convert_pubkey_to_addr(pk_str)
     if pk_as_addr != to_addr:  # 地址是否匹配
+        logger.debug("签名地址不匹配")
         return False
     vk = ecdsa.VerifyingKey.from_string(pk_str, curve=Params.CURVE)
     message = Wallet.create_signature(pk_str, vin.to_spend, tx_out)
@@ -54,6 +56,7 @@ def verify_signature_for_vin(vin, utxo, tx_out):
         vk.verify(sig, message)  # 数字签名是否匹配
         return True
     except ecdsa.BadSignatureError:
+        logger.debug("数字签名验证失败")
         return False
 
 
@@ -66,19 +69,23 @@ def verify_tx(peer, tx, mem_pool):
     :return: 是否合法
     """
     if not verify_tx_basic(tx):
+        logger.debug("参数格式验证失败")
         return False
     if verify_double_payment(tx, mem_pool):
+        logger.debug("存在双重支付")
         return False
     available_value = 0
     for vin in tx.tx_in:
         utxo = peer.utxo_set.get(vin.to_spend, None)
         if not utxo:  # UTXO不存在就加入到孤儿交易池中
             peer.orphan_pool[tx.id] = tx
+            logger.debug("交易使用的UTXO不存在，交易将被加入到孤立交易池中")
             return False
         if not verify_signature_for_vin(vin, utxo, tx.tx_out):
             return False
         available_value += utxo.vout.value
     if available_value < sum(vout.value for vout in tx.tx_out):
+        logger.debug("输入金额小于输出金额")
         return False
     return True
 
@@ -149,9 +156,11 @@ def verify_block_txs(block, reward):
         return False
     # 区块至少需要2条交易，1条挖矿奖励，1条正常交易
     if len(txs) < 2:
+        logger.debug("区块内交易数量不足2条")
         return False
     # 第1条交易需要是创币交易
     if not verify_coinbase(txs[0], reward):
+        logger.debug("区块交易第1条非创币交易")
         return False
     return True
 
@@ -166,11 +175,14 @@ def verify_block(peer, block):
     # if block == peer.candidate_block:
     #     return True
     if not verify_block_basic(block):
+        logger.debug("区块类型错误")
         return False
     if not verify_block_txs(block, Params.MINING_REWARDS):  # TODO 交易费
+        logger.debug("区块内交易类型错误")
         return False
     block_txs = block.txs[1:]
     if verify_double_payment_in_block(block_txs):
+        logger.debug("区块交易存在双重支付")
         return False
     for tx in block_txs:
         if not verify_tx(peer, tx, {}):
