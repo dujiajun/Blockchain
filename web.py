@@ -190,7 +190,7 @@ def receive_block():
     if block_str is None:
         response = {'message': '参数错误！'}
         return jsonify(response)
-    block = Block.load_from_dic(json.loads(block_str))
+    block = Block.from_dic(json.loads(block_str))
     res = peer.receive_block(block)
     if not res:
         logger.debug("区块验证失败：" + str(block))

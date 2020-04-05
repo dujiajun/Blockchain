@@ -71,7 +71,7 @@ class Block(Printable):
         return Block(self.timestamp, self.prev_hash, nonce or self.nonce, self.bits, self.merkle_root, self.txs)
 
     @classmethod
-    def load_from_dic(cls, dic):
+    def from_dic(cls, dic):
         if dic is None or len(dic) == 0:
             return None
         txs = [Tx.from_dict(dic) for dic in dic['txs']]
