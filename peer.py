@@ -118,7 +118,6 @@ class Peer:
             url = f"http://{node}/broadcast-transaction"
             logger.info(f"广播交易：向{node}广播交易")
             requests.post(url, payload)
-            # TODO
 
     def receive_transaction(self, tx):
         """
@@ -182,7 +181,7 @@ class Peer:
         coinbase = Tx.create_coinbase(self.addr, value)
         txs = [coinbase] + txs
         self.candidate_block = Block(prev_hash=prev_hash, nonce=0,
-                                     bits=Params.DIFFICULTY_BITS, txs=txs)  # TODO 时戳
+                                     bits=Params.DIFFICULTY_BITS, txs=txs)
         logger.info(f"创建候选区块：{self.candidate_block}")
 
     def consensus(self):
@@ -211,7 +210,6 @@ class Peer:
             url = f"http://{node}/receive-block"
             logger.info(f"广播区块：向{node}广播区块")
             requests.post(url, payload)
-            # TODO
         # self.candidate_block = None
         return True
 
