@@ -48,14 +48,14 @@ class Wallet(Printable):
         signature = build_message(string)
         return signature
 
-    def save_keys(self):
+    def save_keys(self, filename='wallet.txt'):
         if self.sk is None:
             return
-        with open('wallet.txt', mode='w', encoding='utf-8') as f:
+        with open(filename, mode='w', encoding='utf-8') as f:
             f.write(self.sk.to_string().hex())
 
-    def load_keys(self):
-        with open('wallet.txt', mode='r', encoding='utf-8') as f:
+    def load_keys(self, filename='wallet.txt'):
+        with open(filename, mode='r', encoding='utf-8') as f:
             key = f.readlines()[0]
             self.sk = ecdsa.SigningKey.from_string(bytes.fromhex(key), curve=Params.CURVE)
             self.pk = self.sk.get_verifying_key()

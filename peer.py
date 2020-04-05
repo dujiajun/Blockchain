@@ -274,9 +274,9 @@ class Peer:
         self.__pointers_from_vouts.clear()
         self.__txs_removed.clear()
 
-    def save_data(self):
+    def save_data(self, filename='blockchain.txt'):
         """将节点状态保存到文件"""
-        with open('blockchain.txt', mode='w', encoding='utf-8') as f:
+        with open(filename, mode='w', encoding='utf-8') as f:
             f.write(json.dumps(self.chain, cls=MyJSONEncoder))
             f.write('\n')
             f.write(json.dumps(self.txs, cls=MyJSONEncoder))
@@ -292,9 +292,9 @@ class Peer:
             f.write(json.dumps(self.candidate_block, cls=MyJSONEncoder))
             f.write('\n')
 
-    def load_data(self):
+    def load_data(self, filename='blockchain.txt'):
         """从文件恢复节点状态"""
-        with open('blockchain.txt', mode='r', encoding='utf-8') as f:
+        with open(filename, mode='r', encoding='utf-8') as f:
             lines = f.readlines()
             chain = json.loads(lines[0])
             self.chain = [Block.load_from_dic(block) for block in chain]
