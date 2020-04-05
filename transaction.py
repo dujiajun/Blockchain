@@ -49,6 +49,13 @@ class Vin(Printable):
         """
         return self.signature + self.pubkey
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.to_spend == other.to_spend and \
+                   self.signature == other.signature and \
+                   self.pubkey == self.pubkey
+        return False
+
 
 class Vout(Printable):
     """
@@ -69,6 +76,11 @@ class Vout(Printable):
         :return: 公钥脚本（锁定脚本）
         """
         return f"OP_DUP OP_ADDR {self.to_addr} OP_EQ OP_CHECKSIG"
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.to_addr == other.to_addr and self.value == other.value
+        return False
 
 
 class Tx(Printable):
@@ -174,6 +186,15 @@ class UTXO(Printable):
         pointer = Pointer(dic['pointer']['tx_id'], dic['pointer']['n'])
         vout = Vout(dic['vout']['to_addr'], dic['vout']['value'])
         return UTXO(vout, pointer, dic['is_coinbase'], dic['unspent'], dic['confirmed'])
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.unspent == other.unspent and \
+                   self.is_coinbase == other.is_coinbase and \
+                   self.confirmed == other.confirmed and \
+                   self.pointer == other.pointer and \
+                   self.vout == other.vout
+        return False
 
 
 if __name__ == '__main__':
