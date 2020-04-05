@@ -57,13 +57,12 @@ def verify_signature_for_vin(vin, utxo, tx_out):
         return False
 
 
-def verify_tx(tx, utxo_set, mem_pool, orphan_pool):
+def verify_tx(peer, tx, mem_pool):
     """
     验证交易是否合法
+    :param peer: 节点对象
     :param tx: 交易
-    :param utxo_set: UTXO集
     :param mem_pool: 交易池
-    :param orphan_pool: 孤儿交易池
     :return: 是否合法
     """
     if not verify_tx_basic(tx):
@@ -72,9 +71,9 @@ def verify_tx(tx, utxo_set, mem_pool, orphan_pool):
         return False
     available_value = 0
     for vin in tx.tx_in:
-        utxo = utxo_set.get(vin.to_spend, None)
+        utxo = peer.utxo_set.get(vin.to_spend, None)
         if not utxo:  # UTXO不存在就加入到孤儿交易池中
-            orphan_pool[tx.id] = tx
+            peer.orphan_pool[tx.id] = tx
             return False
         if not verify_signature_for_vin(vin, utxo, tx.tx_out):
             return False
@@ -91,7 +90,7 @@ def verify_tx_in_orphan_pool(peer):
     """
     copy_pool = peer.orphan_pool.copy()
     for tx in copy_pool.values():
-        if not verify_tx(tx, peer.utxo_set, peer.mem_pool, peer.orphan_pool):
+        if not verify_tx(peer, tx, peer.mem_pool):
             continue
         add_tx_to_mem_pool(peer, tx)
         del peer.orphan_pool[tx.id]
@@ -174,7 +173,7 @@ def verify_block(peer, block):
     if verify_double_payment_in_block(block_txs):
         return False
     for tx in block_txs:
-        if not verify_tx(tx, peer.utxo_set, peer.mem_pool, peer.orphan_pool):
+        if not verify_tx(peer, tx, {}):
             return False
     return True
 

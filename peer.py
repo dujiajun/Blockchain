@@ -125,7 +125,7 @@ class Peer:
         :return: 是否成功
         """
         if isinstance(tx, Tx) and (tx.id not in self.mem_pool):
-            if verify_tx(tx, self.utxo_set, self.mem_pool, self.orphan_pool):
+            if verify_tx(self, tx, self.mem_pool):
                 sign_utxo_from_tx(self.utxo_set, tx)
                 add_tx_to_mem_pool(self, tx)
                 return True
