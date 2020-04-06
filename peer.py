@@ -256,9 +256,12 @@ class Peer:
         :param txs: 交易
         """
         utxo_set, pool = self.utxo_set, self.mem_pool
+        # 将交易使用过的UTXO从UTXO_SET移除
         self.__utxos_from_vins = remove_spent_utxo_from_txs(utxo_set, txs)
+        # 将区块交易所有Vout封装成已确认的UTXO添加到UTXO_SET中，并备份
         self.__pointers_from_vouts, self.__utxos_from_vouts = \
             confirm_utxos_from_txs(utxo_set, txs, self.allow_utxo_from_pool)
+        # 将区块交易从交易池中移除，并备份
         self.__txs_removed = remove_txs_from_pool(pool, txs)
 
     def roll_back(self):

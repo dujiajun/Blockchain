@@ -45,21 +45,6 @@ def add_utxos_to_set(utxo_set, utxos):
         utxo_set[utxo.pointer] = utxo
 
 
-def delete_utxo_by_pointers(utxo_set, pointers):
-    """
-    从UTXO_SET中删去定位指针使用过的UTXO，并存储在列表中
-    :param utxo_set: UTXO集合
-    :param pointers: 定位指针集合
-    :return: 被删掉的UTXO列表
-    """
-    utxos_from_vins = []
-    for pointer in pointers:
-        if pointer in utxo_set:
-            utxos_from_vins.append(utxo_set[pointer])
-            del utxo_set[pointer]
-    return utxos_from_vins
-
-
 def remove_spent_utxo_from_txs(utxo_set, txs):
     """
     移除使用过的UTXO
@@ -68,7 +53,7 @@ def remove_spent_utxo_from_txs(utxo_set, txs):
     :return: 移除后的UTXO列表
     """
     pointers = find_vin_pointer_from_txs(txs)
-    utxos = delete_utxo_by_pointers(utxo_set, pointers)
+    utxos = remove_utxos_from_set(utxo_set, pointers)
     return utxos
 
 
@@ -93,9 +78,12 @@ def remove_utxos_from_set(utxo_set, pointers):
     :param utxo_set: UTXO集合
     :param pointers: 定位指针
     """
+    utxos_from_vins = []
     for pointer in pointers:
         if pointer in utxo_set:
+            utxos_from_vins.append(utxo_set[pointer])
             del utxo_set[pointer]
+    return utxos_from_vins
 
 
 def find_vin_pointer_from_txs(txs):
@@ -149,16 +137,17 @@ def find_utxos_from_block(txs):
 
 def confirm_utxos_from_txs(utxo_set, txs, allow_utxo_from_pool):
     """
-    添加UTXO至UTXO_SET
+    将txs中的Vout构建为已确认UTXO并添加到UTXO_SET中
     :param utxo_set: UTXO集合
     :param txs: 交易
     :param allow_utxo_from_pool: 允许从交易池中提取有效UTXO
-    :return:
+    :return: 返回确认前的UTXO列表和指向其的指针
     """
     if allow_utxo_from_pool:
         # 非创币交易找未确认的UTXO
         utxos = find_utxos_from_txs(txs[1:])
         # 所有输出单元均封装为UTXO，均为已确认
+        # 事实上，除了创币交易外，其他交易产生的UTXO均已存在于UTXO_SET中
         add_utxos_from_block_to_set(utxo_set, txs)
         # 找到定位指针用于备份
         pointers = find_vout_pointer_from_txs(txs)
