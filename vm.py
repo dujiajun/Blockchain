@@ -24,6 +24,11 @@ class StackMachine(object):
         self.script = ""
 
     def set_script(self, script, message=b''):
+        """
+        设置脚本
+        :param script: 脚本
+        :param message: 签名明文
+        """
         self.clear()
         self.result = True
         self.pointer = 0
@@ -31,18 +36,26 @@ class StackMachine(object):
         self.script = script
 
     def clear(self):
+        """清空栈"""
         self.stack.clear()
 
     def top(self):
-        return self.stack[-1]
+        """栈顶元素"""
+        return self.stack[-1] if len(self.stack) > 0 else None
 
     def pop(self):
+        """出栈"""
         return self.stack.pop()
 
     def push(self, value):
+        """入栈"""
         self.stack.append(value)
 
     def eval(self, op):
+        """
+        执行指令
+        :param op: 指令
+        """
         if op in self.map:
             self.map[op]()
         elif isinstance(op, str) or \
@@ -52,33 +65,41 @@ class StackMachine(object):
             self.push(op)
 
     def add(self):
+        """定义加法：栈顶与次栈顶出栈，相加结果入栈"""
         self.push(self.pop() + self.pop())
 
     def minus(self):
+        """定义减法：栈顶减去次栈顶，结果入栈"""
         last = self.pop()
         self.push(self.pop() - last)
 
     def multiply(self):
+        """定义乘法：栈顶与次栈顶出栈，相乘结果入栈"""
         self.push(self.pop() * self.pop())
 
     def dup(self):
+        """复制栈顶元素并入栈"""
         self.push(self.top())
 
     def ndup(self):
+        """复制n个元素到栈顶"""
         n = self.pop()
         for val in self.stack[-n:]:
             self.push(val)
         self.push(n)
 
     def equal_check(self):
+        """判断栈顶与次栈顶是否相等，不相等结束运行"""
         flag = (self.pop() == self.pop())
         if not flag:
             self.result = False
 
     def equal(self):
+        """判断栈顶与次栈顶是否相等，结果入栈"""
         self.push(self.pop() == self.pop())
 
     def check_sig(self):
+        """验证签名"""
         pk_str = self.pop()
         sig = self.pop()
         vk = ecdsa.VerifyingKey.from_string(pk_str, curve=Params.CURVE)
@@ -89,10 +110,12 @@ class StackMachine(object):
             self.push(False)
 
     def calc_addr(self):
+        """计算地址"""
         pk_str = self.pop()
         self.push(convert_pubkey_to_addr(pk_str))
 
     def check_mulsig(self):
+        """验证多重签名"""
         n = self.pop()
         pk_strs = [self.pop() for _ in range(n)]
         m = self.pop()
@@ -110,6 +133,7 @@ class StackMachine(object):
             self.push(flag)
 
     def calc_mulhash(self):
+        """计算多公钥哈希值"""
         n = self.pop()
         pk_strs = [self.pop() for _ in range(n)]
         s = b''
@@ -118,6 +142,7 @@ class StackMachine(object):
         self.push(sha256d(s))
 
     def run(self):
+        """运行堆栈机"""
         while self.pointer < len(self.script):
             op = self.script[self.pointer]
             self.pointer += 1
