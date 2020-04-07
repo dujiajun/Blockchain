@@ -104,7 +104,7 @@
                 </v-card-text>
               </v-card>
               <v-card
-                      :key="block.prev_hash"
+                      :key="block.hash"
                       class="my-2"
                       tile
                       v-for="(block,i) in chain"
@@ -120,7 +120,7 @@
           </v-tab-item>
           <v-tab-item>
             <div class="mx-4">
-              <v-card :key="tx" class="my-2" tile v-for="(tx,i) in txs">
+              <v-card :key="tx.id" class="my-2" tile v-for="(tx,i) in txs">
                 <v-card-title>
                   Tx #{{i}}
                 </v-card-title>
@@ -149,7 +149,7 @@
           </v-tab-item>
           <v-tab-item>
             <div class="mx-4">
-              <v-card :key="tx" class="my-2" tile v-for="(tx,i) in mempool">
+              <v-card :key="tx.id" class="my-2" tile v-for="(tx,i) in mempool">
                 <v-card-title>
                   Tx #{{i}}
                 </v-card-title>
