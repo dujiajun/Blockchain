@@ -1,3 +1,6 @@
 blockchain.txt
 wallet.txt
 genesis_block.txt
+__pycache__/
+test/__pycache__/
+utils/__pycache__/
