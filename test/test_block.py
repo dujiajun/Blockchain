@@ -36,7 +36,7 @@ class TestBlock(unittest.TestCase):
 
     def test_mine(self):
         nonce = mine(self.block)
-        logger.debug(f"nonce={nonce}")
+        logger.debug(f"test_mine: nonce={nonce}")
         self.assertLessEqual(int(sha256d(self.block.header(nonce=nonce)), 16),
                              calculate_target(self.block.bits))
 

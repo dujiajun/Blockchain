@@ -19,7 +19,6 @@ class Block(Printable):
         :param prev_hash: 区块链中前一区块的哈希值
         :param nonce: 工作量证明使用到的随机数
         :param txs: 区块中包含的交易列表
-        :type txs: list[Tx]
         """
         self.version = 0
         self.timestamp = timestamp or int(time())
