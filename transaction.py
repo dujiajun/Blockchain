@@ -195,11 +195,3 @@ class UTXO(Printable):
                    self.pointer == other.pointer and \
                    self.vout == other.vout
         return False
-
-
-if __name__ == '__main__':
-    pointer = Pointer(2, 3)
-    vin = Vin(pointer, 2, 3)
-    vout = Vout(2, 4)
-    tx = Tx([vin], [vout])
-    print(tx)

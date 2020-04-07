@@ -1,10 +1,7 @@
-import json
-
 import ecdsa
 
 from params import Params
 from utils.hash_utils import convert_pubkey_to_addr, build_message
-from utils.json_utils import MyJSONEncoder
 from utils.printable import Printable
 
 
@@ -60,14 +57,3 @@ class Wallet(Printable):
             self.sk = ecdsa.SigningKey.from_string(bytes.fromhex(key), curve=Params.CURVE)
             self.pk = self.sk.get_verifying_key()
             self.addr = convert_pubkey_to_addr(self.pk.to_string())
-
-
-if __name__ == '__main__':
-    wallet = Wallet()
-    wallet.generate_key()
-    wallet.save_keys()
-    print(json.dumps(wallet, cls=MyJSONEncoder))
-    wallet.generate_key()
-    print(json.dumps(wallet, cls=MyJSONEncoder))
-    wallet.load_keys()
-    print(json.dumps(wallet, cls=MyJSONEncoder))
