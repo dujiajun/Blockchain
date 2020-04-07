@@ -163,7 +163,7 @@ class Peer:
         with open('genesis_block.txt', mode='r') as f:
             line = f.readlines()[0]
             block_dic = json.loads(line)
-            block = Block.from_dic(block_dic)
+            block = Block.from_dict(block_dic)
             self.chain = [block]
             utxos = find_utxos_from_block(block.txs)
             add_utxos_to_set(self.utxo_set, utxos)
@@ -300,7 +300,7 @@ class Peer:
         with open(filename, mode='r', encoding='utf-8') as f:
             lines = f.readlines()
             chain = json.loads(lines[0])
-            self.chain = [Block.from_dic(block) for block in chain]
+            self.chain = [Block.from_dict(block) for block in chain]
             txs = json.loads(lines[1])
             self.txs = [Tx.from_dict(tx) for tx in txs]
 
@@ -317,7 +317,7 @@ class Peer:
                 self.utxo_set[utxo.pointer] = utxo
 
             self.peer_nodes = set(json.loads(lines[4]))
-            self.candidate_block = Block.from_dic(json.loads(lines[5]))
+            self.candidate_block = Block.from_dict(json.loads(lines[5]))
 
     def add_peer(self, addr: str, port: int = None):
         """添加广播邻居"""

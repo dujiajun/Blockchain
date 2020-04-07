@@ -31,7 +31,7 @@ class TestBlock(unittest.TestCase):
     def test_from_dict(self):
         block_str = json.dumps(self.block, cls=MyJSONEncoder)
         dic = json.loads(block_str)
-        block = Block.from_dic(dic)
+        block = Block.from_dict(dic)
         self.assertEqual(self.block, block)
 
     def test_mine(self):

@@ -1,5 +1,6 @@
 from time import time
 
+from merkle_tree import get_merkle_root_of_txs
 from params import Params
 from transaction import Tx
 from utils.hash_utils import sha256d
@@ -12,14 +13,12 @@ class Block(Printable):
     """
 
     def __init__(self, timestamp=None, prev_hash=None, nonce=0,
-                 bits=Params.DIFFICULTY_BITS, merkle_root=None,
-                 txs=None):
+                 bits=Params.DIFFICULTY_BITS, txs=None):
         """
         :param timestamp: 时戳
         :param prev_hash: 区块链中前一区块的哈希值
         :param nonce: 工作量证明使用到的随机数
         :param txs: 区块中包含的交易列表
-        :param merkle_root: 梅克尔树根哈希值
         :type txs: list[Tx]
         """
         self.version = 0
@@ -27,8 +26,8 @@ class Block(Printable):
         self.prev_hash = prev_hash
         self.nonce = nonce
         self.bits = bits
-        self.merkle_root = merkle_root
         self.txs = txs
+        self.merkle_root = get_merkle_root_of_txs(self.txs) if self.txs else None
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -68,11 +67,11 @@ class Block(Printable):
         :param nonce:
         :return: 新区块
         """
-        return Block(self.timestamp, self.prev_hash, nonce or self.nonce, self.bits, self.merkle_root, self.txs)
+        return Block(self.timestamp, self.prev_hash, nonce or self.nonce, self.bits, self.txs)
 
     @classmethod
-    def from_dic(cls, dic):
+    def from_dict(cls, dic):
         if dic is None or len(dic) == 0:
             return None
         txs = [Tx.from_dict(dic) for dic in dic['txs']]
-        return Block(dic['timestamp'], dic['prev_hash'], dic['nonce'], dic['bits'], dic['merkle_root'], txs)
+        return Block(dic['timestamp'], dic['prev_hash'], dic['nonce'], dic['bits'], txs)
