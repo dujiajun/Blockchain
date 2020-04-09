@@ -6,7 +6,7 @@ from params import Params
 from transaction import Tx
 from utils.hash_utils import convert_pubkey_to_addr
 from utils.log import logger
-from utils.transaction_utils import add_tx_to_mem_pool
+from utils.transaction_utils import add_tx_to_mem_pool, calculate_fees
 from wallet import Wallet
 
 
@@ -177,10 +177,11 @@ def verify_block(peer, block):
     if not verify_block_basic(block):
         logger.debug("区块类型错误")
         return False
-    if not verify_block_txs(block, Params.MINING_REWARDS):  # TODO 交易费
+    block_txs = block.txs[1:]
+    rewards = Params.MINING_REWARDS + calculate_fees(block_txs)
+    if not verify_block_txs(block, rewards):
         logger.debug("区块内交易类型错误")
         return False
-    block_txs = block.txs[1:]
     if verify_double_payment_in_block(block_txs):
         logger.debug("区块交易存在双重支付")
         return False

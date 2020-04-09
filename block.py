@@ -70,7 +70,7 @@ class Block(Printable):
 
     @classmethod
     def from_dict(cls, dic):
-        if dic is None or len(dic) == 0:
+        if not isinstance(dic, dict) or len(dic) == 0:
             return None
         txs = [Tx.from_dict(dic) for dic in dic['txs']]
         return Block(dic['timestamp'], dic['prev_hash'], dic['nonce'], dic['bits'], txs)

@@ -172,3 +172,12 @@ def sign_utxo_from_tx(utxo_set, tx):
         utxo = utxo_set[pointer]
         utxo = utxo.replace(unspent=False)
         utxo_set[pointer] = utxo
+
+
+def calculate_fees(txs):
+    """
+    计算交易列表的交易费总和
+    :param txs: 交易列表
+    :return: 交易费总和
+    """
+    return sum(tx.fee for tx in txs)

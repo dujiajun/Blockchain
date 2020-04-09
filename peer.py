@@ -26,6 +26,7 @@ class Peer:
         self.orphan_block = []
         self.candidate_block = None
         self.port = 5000
+        self.fee = Params.DEFAULT_FEE
         self.__utxos_from_vins = []
         self.__utxos_from_vouts = []
         self.__pointers_from_vouts = []
@@ -51,6 +52,10 @@ class Peer:
         :return: 私钥
         """
         return self.wallet.sk.to_string() if self.wallet.sk else None
+
+    @property
+    def key_base_len(self):
+        return len(self.sk)
 
     def generate_key(self):
         """
@@ -82,6 +87,7 @@ class Peer:
         utxos, balance = self.get_utxos(), self.get_balance()
         utxos = sorted(utxos, key=lambda u: u.vout.value)  # 按金额从小到大排序
         if balance < value:  # 余额不足
+            logger.info("创建交易失败：余额不足！")
             return False
         tx_in, tx_out = [], []
         need_to_spend = 0
@@ -92,16 +98,16 @@ class Peer:
                 n = i + 1
                 break
         if need_to_spend > value:  # 需要找零
-            tx_out.append(Vout(to_addr=to_addr, value=value))
+            tx_out.append(Vout(to_addr=to_addr, value=value - self.fee))
             tx_out.append(Vout(to_addr=self.addr, value=need_to_spend - value))
         else:
-            tx_out.append(Vout(to_addr=to_addr, value=value))
+            tx_out.append(Vout(to_addr=to_addr, value=value - self.fee))
         for utxo in utxos[:n]:
             message = self.wallet.create_signature(self.pk, utxo.pointer, tx_out)
             signature = self.wallet.sign(message)
             tx_in.append(Vin(to_spend=utxo.pointer, signature=signature, pubkey=self.pk))
             # self.utxo_set[utxo.pointer] = utxo.replace(unspent=False)
-        tx = Tx(tx_in=tx_in, tx_out=tx_out)
+        tx = Tx(tx_in=tx_in, tx_out=tx_out, fee=self.fee)
         logger.info(f"创建交易：{tx}")
         self.txs.append(tx)
         return True
@@ -177,7 +183,7 @@ class Peer:
         prev_hash = self.chain[-1].hash
         txs = list(self.mem_pool.values())
 
-        value = Params.MINING_REWARDS  # TODO 交易费
+        value = Params.MINING_REWARDS + calculate_fees(txs)
         coinbase = Tx.create_coinbase(self.addr, value)
         txs = [coinbase] + txs
         self.candidate_block = Block(prev_hash=prev_hash, nonce=0,
