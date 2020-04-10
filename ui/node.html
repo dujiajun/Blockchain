@@ -149,12 +149,51 @@
           </v-tab-item>
           <v-tab-item>
             <div class="mx-4">
-              <v-card :key="tx.id" class="my-2" tile v-for="(tx,i) in mempool">
+              <v-card
+                      :key="tx.id"
+                      class="my-2"
+                      tile
+                      v-for="(tx,i) in mempool"
+              >
                 <v-card-title>
                   Tx #{{i}}
                 </v-card-title>
                 <v-card-text>
                   {{tx}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card
+                      :key="tx.id"
+                      class="my-2"
+                      tile
+                      v-for="(tx,i) in orphan_pool"
+              >
+                <v-card-title>
+                  Tx #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{tx}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card
+                      :key="block.hash"
+                      class="my-2"
+                      tile
+                      v-for="(block,i) in orphan_block"
+              >
+                <v-card-title>
+                  Block #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{block}}
                 </v-card-text>
               </v-card>
             </div>
@@ -253,23 +292,33 @@
       el: "#app",
       vuetify: new Vuetify(),
       props: {
-        source: String
+        source: String,
       },
       data: () => ({
         wallet: null,
         balance: 0,
         error: null,
         tab: 0,
-        tabs: ["区块链", "离线交易", "UTXO集", "交易池", "网络邻居"],
+        tabs: [
+          "区块链",
+          "离线交易",
+          "UTXO池",
+          "交易池",
+          "孤立交易",
+          "孤立区块",
+          "网络邻居",
+        ],
         candidate_block: null,
         chain: [],
         utxos: [],
         mempool: [],
         txs: [],
+        orphan_pool: [],
+        orphan_block: [],
         dialog_new_tx: false,
         new_tx: {
           addr: "",
-          value: ""
+          value: "",
         },
         alert: false,
         alert_msg: "",
@@ -277,7 +326,7 @@
         peers: ["192.168.1.110:5000"],
         peer_node: "",
         snackbar_text: "",
-        snackbar: false
+        snackbar: false,
       }),
       methods: {
         showDialogAlert: function (message) {
@@ -316,7 +365,7 @@
             this.wallet = {
               addr: response.data.addr,
               pk: response.data.pk,
-              sk: response.data.sk
+              sk: response.data.sk,
             };
             this.balance = response.data.balance;
             this.show = true;
@@ -331,7 +380,7 @@
             this.wallet = {
               addr: response.data.addr,
               pk: response.data.pk,
-              sk: response.data.sk
+              sk: response.data.sk,
             };
             this.balance = response.data.balance;
             this.show = true;
@@ -377,26 +426,44 @@
             this.error = error.message;
           }
         },
+        loadOrphanPool: async function () {
+          try {
+            const response = await axios.get("/orphan-pool");
+            this.orphan_pool = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadOrphanBlock: async function () {
+          try {
+            const response = await axios.get("/orphan-block");
+            this.orphan_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
         changeTab: function (event) {
           /*switch (this.tab) {
-              case 0:
-                this.loadChain();
-                break;
-              case 1:
-                this.loadUTXO();
-                break;
-              case 2:
-                this.loadMemPool();
-                break;
-              case 3:
-                this.loadTxs();
-                break;
-              case 4:
-                this.loadPeers();
-                break;
-              default:
-                break;
-            }*/
+            case 0:
+              this.loadChain();
+              break;
+            case 1:
+              this.loadUTXO();
+              break;
+            case 2:
+              this.loadMemPool();
+              break;
+            case 3:
+              this.loadTxs();
+              break;
+            case 4:
+              this.loadPeers();
+              break;
+            default:
+              break;
+          }*/
         },
         createTransaction: async function (addr, value) {
           if (value.trim() == "" || addr.trim() == "") {
@@ -432,6 +499,8 @@
           this.loadTxs();
           this.loadPeers();
           this.loadCandidateBlock();
+          this.loadOrphanPool();
+          this.loadOrphanBlock();
         },
         loadCandidateBlock: async function () {
           try {
@@ -520,8 +589,8 @@
             console.log(error);
             this.error = error.message;
           }
-        }
-      }
+        },
+      },
     });
   </script>
   </body>

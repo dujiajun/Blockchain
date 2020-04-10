@@ -304,6 +304,11 @@ class Peer:
             f.write('\n')
             f.write(json.dumps(self.candidate_block, cls=MyJSONEncoder))
             f.write('\n')
+            orphan_txs = list(self.orphan_pool.values())
+            f.write(json.dumps(orphan_txs, cls=MyJSONEncoder))
+            f.write('\n')
+            f.write(json.dumps(self.orphan_block, cls=MyJSONEncoder))
+            f.write('\n')
 
     def load_data(self, filename='blockchain.txt'):
         """从文件恢复节点状态"""
@@ -328,6 +333,15 @@ class Peer:
 
             self.peer_nodes = set(json.loads(lines[4]))
             self.candidate_block = Block.from_dict(json.loads(lines[5]))
+
+            orphan_txs = json.loads(lines[6])
+            self.orphan_pool.clear()
+            for tx_dic in orphan_txs:
+                tx = Tx.from_dict(tx_dic)
+                self.orphan_pool[tx.id] = tx
+
+            orphan_blocks = json.loads(lines[7])
+            self.orphan_block = [Block.from_dict(block) for block in orphan_blocks]
 
     def add_peer(self, addr: str, port: int = None):
         """添加广播邻居"""

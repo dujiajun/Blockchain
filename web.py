@@ -100,6 +100,17 @@ def get_txs():
     return jsonify(peer.txs)
 
 
+@app.route('/orphan-pool', methods=['GET'])
+def get_orphan_pool():
+    response = [tx for tx in peer.orphan_pool.values()]
+    return jsonify(response)
+
+
+@app.route('/orphan-block', methods=['GET'])
+def get_orphan_block():
+    return jsonify(peer.orphan_block)
+
+
 @app.route('/peers', methods=['GET'])
 def get_peers():
     response = [node for node in peer.peer_nodes]
