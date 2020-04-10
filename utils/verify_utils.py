@@ -191,14 +191,14 @@ def verify_block(peer, block):
     return True
 
 
-def locate_block_by_hash(chain, block_hash):
+def locate_block_by_hash(chain, prev_hash):
     """
     在区块链中定位区块
     :param chain: 区块链
-    :param block_hash: 前一区块的哈希
+    :param prev_hash: 前一区块的哈希
     :return: 区块的高度
     """
     for height, block in enumerate(chain):
-        if block.hash == block_hash:
+        if block.hash == prev_hash:
             return height + 1
     return -1

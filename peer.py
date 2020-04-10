@@ -220,7 +220,8 @@ class Peer:
             url = f"http://{node}/receive-block"
             logger.info(f"广播区块：向{node}广播区块")
             requests.post(url, payload)
-        # self.candidate_block = None
+        self.receive_block(self.candidate_block)
+        self.candidate_block = None
         return True
 
     def receive_block(self, block):
