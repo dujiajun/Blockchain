@@ -4,7 +4,7 @@ from transaction import Vin, Vout, Tx
 from utils.transaction_utils import add_utxos_to_set, find_utxos_from_block
 
 
-def create_genesis_block(peer):
+def create_genesis_block(addr, value=Params.INITIAL_MONEY):
     """
     初始化创世区块
     """
@@ -12,14 +12,17 @@ def create_genesis_block(peer):
                  signature=b'I love blockchain',
                  pubkey=None)]
 
-    tx_out = [Vout(value=Params.INITIAL_MONEY, to_addr=peer.addr)]
+    tx_out = [Vout(value=value, to_addr=addr)]
 
     txs = [Tx(tx_in=tx_in, tx_out=tx_out)]
-    genesis_block = Block(prev_hash=None,
-                          timestamp=12345,
-                          bits=0,
-                          nonce=0,
-                          txs=txs)
+    return Block(prev_hash=None,
+                 timestamp=12345,
+                 bits=0,
+                 nonce=0,
+                 txs=txs)
+
+
+def add_genesis_block(peer, genesis_block):
     peer.chain.append(genesis_block)
-    utxos = find_utxos_from_block(txs)
+    utxos = find_utxos_from_block(genesis_block.txs)
     add_utxos_to_set(peer.utxo_set, utxos)

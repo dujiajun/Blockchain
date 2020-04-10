@@ -1,4 +1,5 @@
 import json
+import traceback
 from typing import Dict
 
 import requests
@@ -160,13 +161,16 @@ class Peer:
         for node in self.peer_nodes:
             url = f"http://{node}/receive-transaction"
             logger.info(f"广播交易：向{node}广播离线交易")
-            requests.post(url, payload)
+            try:
+                requests.post(url, payload)
+            except Exception:
+                traceback.print_exc(limit=1)
         self.txs.clear()
         return True
 
-    def load_genesis_block(self):
+    def load_genesis_block(self, filename='genesis_block.txt'):
         """加载创世区块"""
-        with open('genesis_block.txt', mode='r') as f:
+        with open(filename, mode='r') as f:
             line = f.readlines()[0]
             block_dic = json.loads(line)
             block = Block.from_dict(block_dic)
