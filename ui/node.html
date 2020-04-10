@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link
-            href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
-            rel="stylesheet"
-    />
+    <!--<link
+      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+      rel="stylesheet"
+    />-->
     <link
             href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
             rel="stylesheet"
@@ -328,6 +328,9 @@
         snackbar_text: "",
         snackbar: false,
       }),
+      mounted: function () {
+        this.update();
+      },
       methods: {
         showDialogAlert: function (message) {
           this.alert_msg = message;
@@ -446,24 +449,24 @@
         },
         changeTab: function (event) {
           /*switch (this.tab) {
-            case 0:
-              this.loadChain();
-              break;
-            case 1:
-              this.loadUTXO();
-              break;
-            case 2:
-              this.loadMemPool();
-              break;
-            case 3:
-              this.loadTxs();
-              break;
-            case 4:
-              this.loadPeers();
-              break;
-            default:
-              break;
-          }*/
+          case 0:
+            this.loadChain();
+            break;
+          case 1:
+            this.loadUTXO();
+            break;
+          case 2:
+            this.loadMemPool();
+            break;
+          case 3:
+            this.loadTxs();
+            break;
+          case 4:
+            this.loadPeers();
+            break;
+          default:
+            break;
+        }*/
         },
         createTransaction: async function (addr, value) {
           if (value.trim() == "" || addr.trim() == "") {
