@@ -1,8 +1,10 @@
+from typing import Optional, List
+
 from utils.hash_utils import sha256d
 from utils.printable import Printable
 
 
-def get_merkle_root_of_txs(txs):
+def get_merkle_root_of_txs(txs) -> str:
     """
     从交易列表获取梅尔克树根哈希值
     :param txs: 交易列表
@@ -11,7 +13,7 @@ def get_merkle_root_of_txs(txs):
     return get_merkle_root([tx.id for tx in txs])
 
 
-def get_merkle_root(level):
+def get_merkle_root(level) -> str:
     """
     从一层节点中求梅尔克树根哈希值
     :param level: 叶节点
@@ -101,7 +103,7 @@ class MerkleTree(Printable):
         for leaf in self.leaves:
             leaf.parent, leaf.bro, leaf.side = (None,) * 3
 
-    def get_root(self):
+    def get_root(self) -> Optional[str]:
         """计算梅尔克树根节点哈希值"""
         if not self.leaves:
             return None
@@ -112,7 +114,7 @@ class MerkleTree(Printable):
         self.root = level[0]
         return self.root.val
 
-    def get_path(self, index):
+    def get_path(self, index) -> List:
         """
         获取由底层节点计算根哈希值所需要的所有哈希值
         :param index: 底层节点在列表中的索引

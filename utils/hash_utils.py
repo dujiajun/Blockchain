@@ -3,7 +3,7 @@ from hashlib import sha256, new
 from base58 import b58encode_check
 
 
-def sha256d(string):
+def sha256d(string) -> str:
     """
     SHA256双哈希
     :param string: 需要哈希的数据
@@ -14,7 +14,7 @@ def sha256d(string):
     return sha256(sha256(string).digest()).hexdigest()
 
 
-def convert_pubkey_to_addr(pubkey_str):
+def convert_pubkey_to_addr(pubkey_str) -> str:
     """
     :param pubkey_str: 公钥字符串
     :return: 编码后的地址
@@ -24,7 +24,7 @@ def convert_pubkey_to_addr(pubkey_str):
     return b58encode_check(b'\x00' + ripe).decode()
 
 
-def build_message(string):
+def build_message(string) -> bytes:
     """
     计算明文的双哈希值
     :param string: 明文

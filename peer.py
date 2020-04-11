@@ -1,6 +1,6 @@
 import json
 import traceback
-from typing import Dict
+from typing import Dict, List
 
 import requests
 
@@ -71,14 +71,14 @@ class Peer:
         return [utxo for utxo in self.utxo_set.values()
                 if utxo.vout.to_addr == self.addr and utxo.unspent]
 
-    def get_balance(self):
+    def get_balance(self) -> int:
         """
         :return: 自身余额
         """
         utxos = self.get_utxos()
         return sum([utxo.vout.value for utxo in utxos])
 
-    def create_transaction(self, to_addr, value):
+    def create_transaction(self, to_addr: str, value: int) -> None:
         """
         创建交易
         :param to_addr: 交易目标
@@ -113,7 +113,7 @@ class Peer:
         self.txs.append(tx)
         return True
 
-    def broadcast_transaction(self, tx):
+    def broadcast_transaction(self, tx: Tx) -> None:
         """
         广播单条交易
         :param tx: 交易
@@ -124,9 +124,12 @@ class Peer:
         for node in self.peer_nodes:
             url = f"http://{node}/broadcast-transaction"
             logger.info(f"广播交易：向{node}广播交易")
-            requests.post(url, payload)
+            try:
+                requests.post(url, payload)
+            except Exception:
+                traceback.print_exc(limit=1)
 
-    def receive_transaction(self, tx):
+    def receive_transaction(self, tx: Tx) -> bool:
         """
         接收交易并将其放入交易池中
         :param tx: 交易
@@ -141,7 +144,7 @@ class Peer:
         logger.info(f"接收交易：验证交易失败：{tx}")
         return False
 
-    def broadcast_txs(self):
+    def broadcast_txs(self) -> bool:
         """广播所有离线交易"""
         # 无需广播
         if len(self.txs) == 0:
@@ -168,7 +171,7 @@ class Peer:
         self.txs.clear()
         return True
 
-    def load_genesis_block(self, filename='genesis_block.txt'):
+    def load_genesis_block(self, filename: str = 'genesis_block.txt') -> None:
         """加载创世区块"""
         with open(filename, mode='r') as f:
             line = f.readlines()[0]
@@ -178,7 +181,7 @@ class Peer:
             utxos = find_utxos_from_block(block.txs)
             add_utxos_to_set(self.utxo_set, utxos)
 
-    def create_candidate_block(self):
+    def create_candidate_block(self) -> bool:
         """
         构造候选区块
         :return: 区块
@@ -196,7 +199,7 @@ class Peer:
         logger.info(f"创建候选区块：{self.candidate_block}")
         return True
 
-    def consensus(self):
+    def consensus(self) -> bool:
         """
         进行共识
         :return: 修改nonce后的区块
@@ -211,7 +214,7 @@ class Peer:
         self.candidate_block = block.replace(nonce=nonce)
         return True
 
-    def broadcast_block(self):
+    def broadcast_block(self) -> bool:
         """
         广播区块
         """
@@ -228,7 +231,7 @@ class Peer:
         self.candidate_block = None
         return True
 
-    def receive_block(self, block):
+    def receive_block(self, block: Block) -> bool:
         """
         接收区块并验证和加入链中
         :param block: 区块
@@ -265,7 +268,7 @@ class Peer:
         else:
             return False
 
-    def update_after_receive_block(self, txs):
+    def update_after_receive_block(self, txs: List[Tx]) -> None:
         """
         在接收区块后更新UTXO_SET和交易池
         :param txs: 交易
@@ -279,7 +282,7 @@ class Peer:
         # 将区块交易从交易池中移除，并备份
         self.__txs_removed = remove_txs_from_pool(pool, txs)
 
-    def roll_back(self):
+    def roll_back(self) -> None:
         """
         分叉后回滚
         """
@@ -292,7 +295,7 @@ class Peer:
         self.__pointers_from_vouts.clear()
         self.__txs_removed.clear()
 
-    def save_data(self, filename='blockchain.txt'):
+    def save_data(self, filename: str = 'blockchain.txt') -> None:
         """将节点状态保存到文件"""
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(json.dumps(self.chain, cls=MyJSONEncoder))
@@ -315,7 +318,7 @@ class Peer:
             f.write(json.dumps(self.orphan_block, cls=MyJSONEncoder))
             f.write('\n')
 
-    def load_data(self, filename='blockchain.txt'):
+    def load_data(self, filename: str = 'blockchain.txt') -> None:
         """从文件恢复节点状态"""
         with open(filename, mode='r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -348,15 +351,9 @@ class Peer:
             orphan_blocks = json.loads(lines[7])
             self.orphan_block = [Block.from_dict(block) for block in orphan_blocks]
 
-    def add_peer(self, addr: str, port: int = None):
+    def add_peer(self, addr: str, port: int = None) -> None:
         """添加广播邻居"""
         if port is None:
             self.peer_nodes.add(f'{addr}')
         else:
             self.peer_nodes.add(f'{addr}:{port}')
-
-
-if __name__ == '__main__':
-    peer = Peer()
-    peer.generate_key()
-    peer.save_data()

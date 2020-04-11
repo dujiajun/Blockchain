@@ -4,7 +4,7 @@ from transaction import Vin, Vout, Tx
 from utils.transaction_utils import add_utxos_to_set, find_utxos_from_block
 
 
-def create_genesis_block(addr, value=Params.INITIAL_MONEY):
+def create_genesis_block(addr, value=Params.INITIAL_MONEY) -> Block:
     """
     初始化创世区块
     """

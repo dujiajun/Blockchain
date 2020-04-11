@@ -1,6 +1,9 @@
+from typing import List
+
 import ecdsa
 
 from params import Params
+from transaction import Pointer, Vout
 from utils.hash_utils import convert_pubkey_to_addr, build_message
 from utils.printable import Printable
 
@@ -29,11 +32,11 @@ class Wallet(Printable):
         self.pk = self.sk.get_verifying_key()
         self.addr = convert_pubkey_to_addr(self.pk.to_string())
 
-    def sign(self, message):
+    def sign(self, message: bytes) -> bytes:
         return self.sk.sign(message)
 
     @classmethod
-    def create_signature(cls, pk, pointer, tx_out):
+    def create_signature(cls, pk: bytes, pointer: Pointer, tx_out: List[Vout]) -> bytes:
         """
         创建签名
         :param pk: 公钥字符串
@@ -45,13 +48,13 @@ class Wallet(Printable):
         signature = build_message(string)
         return signature
 
-    def save_keys(self, filename='wallet.txt'):
+    def save_keys(self, filename: str = 'wallet.txt') -> None:
         if self.sk is None:
             return
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(self.sk.to_string().hex())
 
-    def load_keys(self, filename='wallet.txt'):
+    def load_keys(self, filename: str = 'wallet.txt') -> None:
         with open(filename, mode='r', encoding='utf-8') as f:
             key = f.readlines()[0]
             self.sk = ecdsa.SigningKey.from_string(bytes.fromhex(key), curve=Params.CURVE)

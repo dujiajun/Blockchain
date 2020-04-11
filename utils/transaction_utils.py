@@ -174,7 +174,7 @@ def sign_utxo_from_tx(utxo_set, tx):
         utxo_set[pointer] = utxo
 
 
-def calculate_fees(txs):
+def calculate_fees(txs) -> int:
     """
     计算交易列表的交易费总和
     :param txs: 交易列表

@@ -1,3 +1,5 @@
+from typing import List
+
 import ecdsa
 
 from params import Params
@@ -23,7 +25,7 @@ class StackMachine(object):
         self.message = b''
         self.script = ""
 
-    def set_script(self, script, message=b''):
+    def set_script(self, script: List, message: bytes = b''):
         """
         设置脚本
         :param script: 脚本

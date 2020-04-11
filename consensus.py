@@ -1,7 +1,7 @@
 from utils.hash_utils import sha256d
 
 
-def calculate_target(bits):
+def calculate_target(bits) -> int:
     """
     :param bits: 位数
     :return: 目标值
@@ -9,7 +9,7 @@ def calculate_target(bits):
     return 1 << (256 - bits)
 
 
-def mine(block):
+def mine(block) -> int:
     """
     挖矿
     :param block: 最开始的情况

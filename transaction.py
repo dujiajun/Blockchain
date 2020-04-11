@@ -86,7 +86,7 @@ class Vout(Printable):
 class Tx(Printable):
     """交易"""
 
-    def __init__(self, tx_in: List[Vin] = None, tx_out: List[Vout] = None, fee=0):
+    def __init__(self, tx_in: List[Vin] = None, tx_out: List[Vout] = None, fee: int = 0):
         """
         :param tx_in: 交易输入单元的集合
         :param tx_out: 交易输出单元的集合
