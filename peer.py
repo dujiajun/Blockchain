@@ -78,7 +78,7 @@ class Peer:
         utxos = self.get_utxos()
         return sum([utxo.vout.value for utxo in utxos])
 
-    def create_transaction(self, to_addr: str, value: int) -> None:
+    def create_transaction(self, to_addr: str, value: int) -> bool:
         """
         创建交易
         :param to_addr: 交易目标
