@@ -183,7 +183,8 @@ class Peer:
         构造候选区块
         :return: 区块
         """
-
+        if len(self.mem_pool) == 0:
+            return False
         prev_hash = self.chain[-1].hash
         txs = list(self.mem_pool.values())
 
@@ -193,6 +194,7 @@ class Peer:
         self.candidate_block = Block(prev_hash=prev_hash, nonce=0,
                                      bits=Params.DIFFICULTY_BITS, txs=txs)
         logger.info(f"创建候选区块：{self.candidate_block}")
+        return True
 
     def consensus(self):
         """
@@ -200,12 +202,14 @@ class Peer:
         :return: 修改nonce后的区块
         """
         if not self.candidate_block:
-            self.create_candidate_block()
+            if not self.create_candidate_block():
+                return False
         block = self.candidate_block
         logger.info("共识：开始挖矿！")
         nonce = mine(block)
         logger.info(f"共识：挖矿结束，nonce={nonce}")
         self.candidate_block = block.replace(nonce=nonce)
+        return True
 
     def broadcast_block(self):
         """

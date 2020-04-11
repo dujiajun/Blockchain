@@ -15,7 +15,7 @@ def mine(block):
     :param block: 最开始的情况
     :return: nonce值
     """
-    nonce = 0
+    nonce = block.nonce
     target = calculate_target(block.bits)
     while int(sha256d(block.header(nonce)), 16) >= target:
         nonce += 1
