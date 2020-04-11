@@ -4,6 +4,7 @@ from os.path import exists
 
 from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 
 from peer import Peer, Tx, Block
 from utils.json_utils import MyJSONEncoder
@@ -12,6 +13,8 @@ from utils.log import logger
 app = Flask(__name__)
 CORS(app)
 app.json_encoder = MyJSONEncoder
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
 peer = Peer()
 if exists('wallet.txt'):
@@ -163,6 +166,7 @@ def receive_transaction():
         if not res:
             logger.debug("交易验证失败或已在交易池中！：" + str(tx))
     response = {'message': '已广播！'}
+    socketio.emit('notify', 'received txs')
     return jsonify(response)
 
 
@@ -172,6 +176,7 @@ def broadcast_txs():
         response = {'message': '已广播！'}
     else:
         response = {'message': '未广播！'}
+    socketio.emit('notify', 'broadcast txs')
     return jsonify(response)
 
 
@@ -186,10 +191,10 @@ def create_candidate_block():
     return jsonify(peer.candidate_block)
 
 
-@app.route('/mine', methods=['POST'])
-def mine():
-    peer.consensus()
-    return jsonify(peer.candidate_block)
+@socketio.on('mine')
+def mine(message):
+    if peer.consensus():
+        emit('mine', json.dumps(peer.candidate_block, cls=MyJSONEncoder))
 
 
 @app.route('/receive-block', methods=['POST'])
@@ -206,6 +211,7 @@ def receive_block():
     if not res:
         logger.debug("区块验证失败：" + str(block))
     response = {'message': '已广播！'}
+    socketio.emit('notify', 'received block')
     return jsonify(response)
 
 
@@ -215,6 +221,7 @@ def broadcast_block():
         response = {'message': '已广播！'}
     else:
         response = {'message': '未广播！'}
+    socketio.emit('notify', 'broadcast block')
     return jsonify(response)
 
 
@@ -224,4 +231,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     port = args.port
     peer.port = port
-    app.run(host='0.0.0.0', port=port)
+    # app.run(host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)

@@ -82,7 +82,7 @@
           >
             新建候选区块
           </v-btn>
-          <v-btn @click="mine" class="mx-2 my-2" color="primary">挖矿</v-btn>
+          <v-btn @click="mine" class="mx-2 my-2" color="primary">共识</v-btn>
           <v-btn @click="broadcastBlock" class="mx-2 my-2" color="primary">
             广播候选区块
           </v-btn>
@@ -286,7 +286,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.bootcss.com/axios/0.19.2/axios.min.js"></script>
+  <script src="https://cdn.bootcss.com/socket.io/2.3.0/socket.io.js"></script>
   <script>
     new Vue({
       el: "#app",
@@ -327,11 +328,21 @@
         peer_node: "",
         snackbar_text: "",
         snackbar: false,
+        socket: io(),
       }),
       mounted: function () {
         this.update();
+        this.socket.on("mine", this.notifyMine);
+        this.socket.on("notify", this.notify);
       },
       methods: {
+        notifyMine: function (message) {
+          this.candidate_block = message;
+          this.showSnackbar("已完成共识");
+        },
+        notify: function (message) {
+          this.update();
+        },
         showDialogAlert: function (message) {
           this.alert_msg = message;
           this.alert = true;
@@ -449,24 +460,24 @@
         },
         changeTab: function (event) {
           /*switch (this.tab) {
-          case 0:
-            this.loadChain();
-            break;
-          case 1:
-            this.loadUTXO();
-            break;
-          case 2:
-            this.loadMemPool();
-            break;
-          case 3:
-            this.loadTxs();
-            break;
-          case 4:
-            this.loadPeers();
-            break;
-          default:
-            break;
-        }*/
+        case 0:
+          this.loadChain();
+          break;
+        case 1:
+          this.loadUTXO();
+          break;
+        case 2:
+          this.loadMemPool();
+          break;
+        case 3:
+          this.loadTxs();
+          break;
+        case 4:
+          this.loadPeers();
+          break;
+        default:
+          break;
+      }*/
         },
         createTransaction: async function (addr, value) {
           if (value.trim() == "" || addr.trim() == "") {
@@ -567,17 +578,12 @@
             this.error = error.message;
           }
         },
-        mine: async function () {
+        mine: function () {
           if (this.mempool.length == 0) {
             this.showSnackbar("交易池为空！");
+            return;
           }
-          try {
-            const response = await axios.post("/mine");
-            this.candidate_block = response.data;
-          } catch (error) {
-            console.log(error);
-            this.error = error.message;
-          }
+          this.socket.emit("mine", "Start mining!");
         },
         broadcastBlock: async function () {
           if (this.candidate_block == null) {

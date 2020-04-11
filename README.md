@@ -5,11 +5,14 @@
 ## 起步
 
 ### 环境
-* Python >= 3.6
-* Flask
+* Python >= 3.7
+* flask
 * ecdsa
 * base58
 * requests
+* flask-cors
+* flask-socketio
+* eventlet
 
 ### 安装
 建议使用conda或virtualenv新建虚拟环境。

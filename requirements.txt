@@ -1,5 +1,7 @@
 requests
-base58==2.0.0
-ecdsa==0.15
-Flask==1.1.1
-Flask-Cors==3.0.8
+base58
+ecdsa
+Flask
+Flask-Cors
+flask-socketio
+eventlet
