@@ -1,5 +1,6 @@
 import json
 import traceback
+from os.path import exists
 from typing import Dict, List
 
 import requests
@@ -15,23 +16,43 @@ from wallet import Wallet
 class Peer:
     """区块链的参与者对象"""
 
-    def __init__(self):
+    def __init__(self,
+                 wallet_file='wallet_{0}.txt',
+                 blockchain_file='blockchain_{0}.txt',
+                 genesis_block_file='genesis_block.txt',
+                 port=5000):
+        self.wallet_file = wallet_file.format(port)
+        self.blockchain_file = blockchain_file.format(port)
+        self.genesis_block_file = genesis_block_file
+
         self.chain = []
         self.txs = []  # 离线交易
         self.peer_nodes = set()
         self.utxo_set: Dict[Pointer, UTXO] = {}
         self.mem_pool: Dict[str, Tx] = {}
         self.orphan_pool: Dict[str, Tx] = {}
-        self.wallet = Wallet()
-        self.allow_utxo_from_pool = True
+        self.wallet = Wallet(self.wallet_file)
+        self.allow_utxo_from_pool = False
         self.orphan_block = []
         self.candidate_block = None
-        self.port = 5000
+        self.port = port
         self.fee = Params.DEFAULT_FEE
+
         self.__utxos_from_vins = []
         self.__utxos_from_vouts = []
         self.__pointers_from_vouts = []
         self.__txs_removed = {}
+
+    def init(self):
+        """从本地文件（若存在）初始化节点"""
+        if exists(self.wallet_file):
+            self.wallet.load_keys(self.wallet_file)
+        else:
+            self.generate_key()
+        if exists(self.genesis_block_file):
+            self.load_genesis_block()
+        if exists(self.blockchain_file):
+            self.load_data()
 
     @property
     def addr(self):
@@ -295,9 +316,10 @@ class Peer:
         self.__pointers_from_vouts.clear()
         self.__txs_removed.clear()
 
-    def save_data(self, filename: str = 'blockchain.txt') -> None:
+    def save_data(self) -> None:
         """将节点状态保存到文件"""
-        with open(filename, mode='w', encoding='utf-8') as f:
+        self.wallet.save_keys(self.wallet_file)
+        with open(self.blockchain_file, mode='w', encoding='utf-8') as f:
             f.write(json.dumps(self.chain, cls=MyJSONEncoder))
             f.write('\n')
             f.write(json.dumps(self.txs, cls=MyJSONEncoder))
@@ -318,9 +340,10 @@ class Peer:
             f.write(json.dumps(self.orphan_block, cls=MyJSONEncoder))
             f.write('\n')
 
-    def load_data(self, filename: str = 'blockchain.txt') -> None:
+    def load_data(self) -> None:
         """从文件恢复节点状态"""
-        with open(filename, mode='r', encoding='utf-8') as f:
+        self.wallet.load_keys(self.wallet_file)
+        with open(self.blockchain_file, mode='r', encoding='utf-8') as f:
             lines = f.readlines()
             chain = json.loads(lines[0])
             self.chain = [Block.from_dict(block) for block in chain]

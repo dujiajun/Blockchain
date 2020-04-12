@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import ecdsa
 
@@ -13,10 +13,11 @@ class Wallet(Printable):
     管理公私钥对、地址的钱包
     """
 
-    def __init__(self):
+    def __init__(self, filename=None):
         self.pk = None
         self.sk = None
         self.addr = None
+        self.filename = filename
 
     def empty(self):
         """
@@ -48,13 +49,15 @@ class Wallet(Printable):
         signature = build_message(string)
         return signature
 
-    def save_keys(self, filename: str = 'wallet.txt') -> None:
+    def save_keys(self, filename: Optional[str] = None) -> None:
         if self.sk is None:
             return
+        filename = filename or self.filename
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(self.sk.to_string().hex())
 
-    def load_keys(self, filename: str = 'wallet.txt') -> None:
+    def load_keys(self, filename: Optional[str] = None) -> None:
+        filename = filename or self.filename
         with open(filename, mode='r', encoding='utf-8') as f:
             key = f.readlines()[0]
             self.sk = ecdsa.SigningKey.from_string(bytes.fromhex(key), curve=Params.CURVE)

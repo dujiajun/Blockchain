@@ -1,6 +1,5 @@
 import json
 from argparse import ArgumentParser
-from os.path import exists
 
 from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
@@ -16,15 +15,13 @@ app.json_encoder = MyJSONEncoder
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-peer = Peer()
-if exists('wallet.txt'):
-    peer.wallet.load_keys()
-else:
-    peer.generate_key()
-if exists('genesis_block.txt'):
-    peer.load_genesis_block()
-if exists('blockchain.txt'):
-    peer.load_data()
+parser = ArgumentParser()
+parser.add_argument('-p', '--port', type=int, default=5000)
+args = parser.parse_args()
+port = args.port
+
+peer = Peer(port=port)
+peer.init()
 
 
 @app.route('/')
@@ -35,7 +32,6 @@ def hello_world():
 @app.route('/save-data', methods=['POST'])
 def save_data():
     try:
-        peer.wallet.save_keys()
         peer.save_data()
         res = True
     except Exception as e:
@@ -48,7 +44,6 @@ def save_data():
 @app.route('/load-data', methods=['POST'])
 def load_data():
     try:
-        peer.wallet.load_keys()
         peer.load_data()
         res = True
     except Exception as e:
@@ -226,10 +221,4 @@ def broadcast_block():
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('-p', '--port', type=int, default=5000)
-    args = parser.parse_args()
-    port = args.port
-    peer.port = port
-    # app.run(host='0.0.0.0', port=port)
     socketio.run(app, host='0.0.0.0', port=port, debug=True)
