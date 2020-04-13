@@ -1,10 +1,12 @@
 import json
-import traceback
+import threading
+import time
 from os.path import exists
 from typing import Dict, List
 
 import requests
 
+from config import SEED_NODE_ADDR
 from consensus import mine
 from transaction import Vout, Vin
 from utils.json_utils import MyJSONEncoder
@@ -139,7 +141,7 @@ class Peer:
         广播单条交易
         :param tx: 交易
         """
-        add_tx_to_mem_pool(self, tx)  # 离线交易进入交易池
+        # add_tx_to_mem_pool(self, tx)  # 离线交易进入交易池
         payload = {'tx': str(tx)}
 
         for node in self.peer_nodes:
@@ -148,7 +150,7 @@ class Peer:
             try:
                 requests.post(url, payload)
             except Exception:
-                traceback.print_exc(limit=1)
+                logger.debug(f'向{node}广播失败！')
 
     def receive_transaction(self, tx: Tx) -> bool:
         """
@@ -176,9 +178,9 @@ class Peer:
             return False
 
         # 离线交易进入交易池
-        for tx in self.txs:
-            sign_utxo_from_tx(self.utxo_set, tx)
-            add_tx_to_mem_pool(self, tx)
+        # for tx in self.txs:
+        #     sign_utxo_from_tx(self.utxo_set, tx)
+        #     add_tx_to_mem_pool(self, tx)
 
         # 广播时让对方发现自己端口号（request可获取IP地址）
         payload = {'port': self.port, 'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
@@ -187,8 +189,8 @@ class Peer:
             logger.info(f"广播交易：向{node}广播离线交易")
             try:
                 requests.post(url, payload)
-            except Exception:
-                traceback.print_exc(limit=1)
+            except:
+                logger.debug(f'向{node}广播失败！')
         self.txs.clear()
         return True
 
@@ -247,8 +249,11 @@ class Peer:
         for node in self.peer_nodes:
             url = f"http://{node}/receive-block"
             logger.info(f"广播区块：向{node}广播区块")
-            requests.post(url, payload)
-        self.receive_block(self.candidate_block)
+            try:
+                requests.post(url, payload)
+            except:
+                logger.debug(f'向{node}广播失败！')
+        # self.receive_block(self.candidate_block)
         self.candidate_block = None
         return True
 
@@ -380,3 +385,50 @@ class Peer:
             self.peer_nodes.add(f'{addr}')
         else:
             self.peer_nodes.add(f'{addr}:{port}')
+
+    def login(self):
+        addr, port = SEED_NODE_ADDR
+        url = f'http://{addr}:{port}/login'
+        payload = {'port': self.port}
+        try:
+            requests.post(url, data=payload)
+        except:
+            logger.debug('连接种子服务器失败！')
+
+    def update_peer(self):
+        """向种子服务器获取在线节点"""
+        logger.info('开始更新网络邻居')
+        addr, port = SEED_NODE_ADDR
+        url = f'http://{addr}:{port}/nodes'
+        try:
+            response = requests.get(url)
+        except:
+            logger.debug('连接种子服务器失败！')
+            return False
+        server_nodes = response.json()
+        self.peer_nodes.clear()
+        for node in server_nodes:
+            self.add_peer(node[0], int(node[1]))
+        return True
+
+    def wrapped_update_peer(self, interval=10, callback=None):
+        """
+        提供给自动更新的包裹函数
+        :param callback: 回调函数
+        :param interval: 执行间隔时间
+        """
+        while True:
+            if not self.update_peer():
+                break
+            time.sleep(interval)
+            if callback:
+                callback()
+
+    def automatic_update_peer(self, interval=10, callback=None):
+        """
+        自动更新在线列表
+        :param callback: 回调函数
+        :param interval: 执行间隔时间
+        """
+        update_thread = threading.Thread(target=self.wrapped_update_peer, args=(interval, callback))
+        update_thread.start()

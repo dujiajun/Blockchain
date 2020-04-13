@@ -15,6 +15,11 @@ app.json_encoder = MyJSONEncoder
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
+
+def notify_peer_updated():
+    socketio.emit('peer', 'peers updated')
+
+
 parser = ArgumentParser()
 parser.add_argument('-p', '--port', type=int, default=5000)
 args = parser.parse_args()
@@ -22,6 +27,8 @@ port = args.port
 
 peer = Peer(port=port)
 peer.init()
+peer.login()
+peer.automatic_update_peer(callback=notify_peer_updated)
 
 
 @app.route('/')
@@ -220,5 +227,12 @@ def broadcast_block():
     return jsonify(response)
 
 
+@app.route('/keep-alive', methods=['POST'])
+def keep_alive():
+    ip = request.remote_addr
+    logger.info(f'收到{ip}的心跳包')
+    return jsonify(True)
+
+
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, host='0.0.0.0', port=port)
