@@ -18,6 +18,7 @@ socketio = SocketIO(app)
 
 def notify_peer_updated():
     socketio.emit('peer', 'peers updated')
+    # TODO: 前端似乎没有收到
 
 
 parser = ArgumentParser()
@@ -28,7 +29,10 @@ port = args.port
 peer = Peer(port=port)
 peer.init()
 peer.login()
-peer.automatic_update_peer(callback=notify_peer_updated)
+peer.update_peer()
+
+
+#  peer.automatic_update_peer(callback=notify_peer_updated)
 
 
 @app.route('/')
@@ -86,6 +90,11 @@ def generate_keys():
 @app.route('/chain', methods=['GET'])
 def get_chain():
     return jsonify(peer.chain)
+
+
+@app.route('/chain-height', methods=['GET'])
+def get_chain_height():
+    return jsonify(len(peer.chain))
 
 
 @app.route('/mem-pool', methods=['GET'])
@@ -232,6 +241,16 @@ def keep_alive():
     ip = request.remote_addr
     logger.info(f'收到{ip}的心跳包')
     return jsonify(True)
+
+
+@app.route('/update-chain', methods=['POST'])
+def update_chain():
+    if peer.update_chain():
+        response = {'message': '已更新区块链！'}
+        socketio.emit('notify', 'update chain')
+    else:
+        response = {'message': '未更新区块链！'}
+    return jsonify(response)
 
 
 if __name__ == '__main__':

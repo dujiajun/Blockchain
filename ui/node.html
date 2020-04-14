@@ -9,279 +9,282 @@
             href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css"
             rel="stylesheet"
     />
-      <link
-              href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
-              rel="stylesheet"
-      />
-      <meta
-              content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
-              name="viewport"
-      />
+    <link
+            href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+            rel="stylesheet"
+    />
+    <meta
+            content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+            name="viewport"
+    />
   </head>
   <body>
   <div id="app">
-      <v-app id="inspire">
-          <v-app-bar app color="primary" dark>
-              <v-toolbar-title class="ml-1 mr-2">
-                  区块链管理平台
-              </v-toolbar-title>
+    <v-app id="inspire">
+      <v-app-bar app color="primary" dark>
+        <v-toolbar-title class="ml-1 mr-2">
+          区块链管理平台
+        </v-toolbar-title>
 
-              <v-btn text>本地</v-btn>
-              <v-btn text>网络</v-btn>
-              <v-spacer></v-spacer>
-          </v-app-bar>
-          <v-content>
-              <v-card class="mx-4 my-4" tile>
-                  <v-card-title>节点钱包</v-card-title>
-                  <v-card-text v-if="wallet">
-                      <div>地址：{{wallet.addr}}</div>
-                      <div>公钥：{{wallet.pk}}</div>
-                      <div>私钥：{{wallet.sk}}</div>
-                      <div>余额：{{balance}}</div>
-                  </v-card-text>
-                  <v-card-text v-else>
-                      还没有新建钱包
-                  </v-card-text>
-                  <v-card-actions>
-                      <v-btn @click="newWallet" color="primary" text>
-                          新建钱包
-                      </v-btn>
-                      <v-btn @click="loadWallet" color="primary" text>
-                          加载钱包
-                      </v-btn>
-                  </v-card-actions>
+        <v-btn text>本地</v-btn>
+        <v-btn text>网络</v-btn>
+        <v-spacer></v-spacer>
+      </v-app-bar>
+      <v-content>
+        <v-card class="mx-4 my-4" tile>
+          <v-card-title>节点钱包</v-card-title>
+          <v-card-text v-if="wallet">
+            <div>地址：{{wallet.addr}}</div>
+            <div>公钥：{{wallet.pk}}</div>
+            <div>私钥：{{wallet.sk}}</div>
+            <div>余额：{{balance}}</div>
+          </v-card-text>
+          <v-card-text v-else>
+            还没有新建钱包
+          </v-card-text>
+          <v-card-actions>
+            <v-btn @click="newWallet" color="primary" text>
+              新建钱包
+            </v-btn>
+            <v-btn @click="loadWallet" color="primary" text>
+              加载钱包
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+        <div class="d-flex flex-wrap mx-4">
+          <v-btn @click="update" class="mx-2 my-2" color="primary"
+          >刷新状态
+          </v-btn>
+          <v-btn @click="saveToFile" class="mx-2 my-2" color="primary"
+          >保存状态
+          </v-btn>
+          <v-btn @click="loadFromFile" class="mx-2 my-2" color="primary"
+          >加载状态
+          </v-btn>
+          <v-btn
+                  @click="dialog_new_tx = !dialog_new_tx"
+                  class="mx-2 my-2"
+                  color="primary"
+          >
+            新建交易
+          </v-btn>
+          <v-btn
+                  @click="broadcastTransaction"
+                  class="mx-2 my-2"
+                  color="primary"
+          >
+            广播交易
+          </v-btn>
+          <v-btn
+                  @click="createCandidateBlock"
+                  class="mx-2 my-2"
+                  color="primary"
+          >
+            新建候选区块
+          </v-btn>
+          <v-btn @click="mine" class="mx-2 my-2" color="primary">共识</v-btn>
+          <v-btn @click="broadcastBlock" class="mx-2 my-2" color="primary">
+            广播候选区块
+          </v-btn>
+          <v-btn @click="updateChain" class="mx-2 my-2" color="primary">
+            从网络中更新区块链
+          </v-btn>
+        </div>
+        <v-tabs grow v-model="tab" v-on:change="changeTab">
+          <v-tab :key="i" v-for="i in tabs">
+            {{i}}
+          </v-tab>
+        </v-tabs>
+        <v-tabs-items v-model="tab">
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card class="my-2" tile v-if="candidate_block!=null">
+                <v-card-title>
+                  候选区块
+                </v-card-title>
+                <v-card-text>
+                  {{candidate_block}}
+                </v-card-text>
               </v-card>
-              <div class="d-flex flex-wrap mx-4">
-                  <v-btn @click="update" class="mx-2 my-2" color="primary"
-                  >刷新状态
+              <v-card
+                      :key="block.hash"
+                      class="my-2"
+                      tile
+                      v-for="(block,i) in chain"
+              >
+                <v-card-title>
+                  Block #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{block}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card :key="tx.id" class="my-2" tile v-for="(tx,i) in txs">
+                <v-card-title>
+                  Tx #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{tx}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card
+                      :key="utxo.pointer.tx_id"
+                      class="my-2"
+                      tile
+                      v-for="(utxo,i) in utxos"
+              >
+                <v-card-title>
+                  UTXO #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{utxo}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card
+                      :key="tx.id"
+                      class="my-2"
+                      tile
+                      v-for="(tx,i) in mempool"
+              >
+                <v-card-title>
+                  Tx #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{tx}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card
+                      :key="tx.id"
+                      class="my-2"
+                      tile
+                      v-for="(tx,i) in orphan_pool"
+              >
+                <v-card-title>
+                  Tx #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{tx}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <div class="mx-4">
+              <v-card
+                      :key="block.hash"
+                      class="my-2"
+                      tile
+                      v-for="(block,i) in orphan_block"
+              >
+                <v-card-title>
+                  Block #{{i}}
+                </v-card-title>
+                <v-card-text>
+                  {{block}}
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-tab-item>
+          <v-tab-item>
+            <v-subheader>添加邻居</v-subheader>
+            <div class="mx-4">
+              <v-text-field
+                      label="地址"
+                      placeholder="e.g. localhost:5000"
+                      v-model="peer_node"
+              />
+            </div>
+            <v-btn @click="addPeer(peer_node)" class="mx-4">
+              添加
+            </v-btn>
+            <v-subheader>邻居地址</v-subheader>
+            <v-list>
+              <v-list-item :key="peer" v-for="peer in peers">
+                <v-list-item-content>
+                  {{peer}}
+                </v-list-item-content>
+                <v-list-item-action>
+                  <v-btn icon>
+                    <v-icon>mdi-delete</v-icon>
                   </v-btn>
-                  <v-btn @click="saveToFile" class="mx-2 my-2" color="primary"
-                  >保存状态
-                  </v-btn>
-                  <v-btn @click="loadFromFile" class="mx-2 my-2" color="primary"
-                  >加载状态
-                  </v-btn>
-                  <v-btn
-                          @click="dialog_new_tx = !dialog_new_tx"
-                          class="mx-2 my-2"
-                          color="primary"
-                  >
-                      新建交易
-                  </v-btn>
-                  <v-btn
-                          @click="broadcastTransaction"
-                          class="mx-2 my-2"
-                          color="primary"
-                  >
-                      广播交易
-                  </v-btn>
-                  <v-btn
-                          @click="createCandidateBlock"
-                          class="mx-2 my-2"
-                          color="primary"
-                  >
-                      新建候选区块
-                  </v-btn>
-                  <v-btn @click="mine" class="mx-2 my-2" color="primary">共识</v-btn>
-                  <v-btn @click="broadcastBlock" class="mx-2 my-2" color="primary">
-                      广播候选区块
-                  </v-btn>
-              </div>
-              <v-tabs grow v-model="tab" v-on:change="changeTab">
-                  <v-tab :key="i" v-for="i in tabs">
-                      {{i}}
-                  </v-tab>
-              </v-tabs>
-              <v-tabs-items v-model="tab">
-                  <v-tab-item>
-                      <div class="mx-4">
-                          <v-card class="my-2" tile v-if="candidate_block!=null">
-                              <v-card-title>
-                                  候选区块
-                              </v-card-title>
-                              <v-card-text>
-                                  {{candidate_block}}
-                              </v-card-text>
-                          </v-card>
-                          <v-card
-                                  :key="block.hash"
-                                  class="my-2"
-                                  tile
-                                  v-for="(block,i) in chain"
-                          >
-                              <v-card-title>
-                                  Block #{{i}}
-                              </v-card-title>
-                              <v-card-text>
-                                  {{block}}
-                              </v-card-text>
-                          </v-card>
-                      </div>
-                  </v-tab-item>
-                  <v-tab-item>
-                      <div class="mx-4">
-                          <v-card :key="tx.id" class="my-2" tile v-for="(tx,i) in txs">
-                              <v-card-title>
-                                  Tx #{{i}}
-                              </v-card-title>
-                              <v-card-text>
-                                  {{tx}}
-                              </v-card-text>
-                          </v-card>
-                      </div>
-                  </v-tab-item>
-                  <v-tab-item>
-                      <div class="mx-4">
-                          <v-card
-                                  :key="utxo.pointer.tx_id"
-                                  class="my-2"
-                                  tile
-                                  v-for="(utxo,i) in utxos"
-                          >
-                              <v-card-title>
-                                  UTXO #{{i}}
-                              </v-card-title>
-                              <v-card-text>
-                                  {{utxo}}
-                              </v-card-text>
-                          </v-card>
-                      </div>
-                  </v-tab-item>
-                  <v-tab-item>
-                      <div class="mx-4">
-                          <v-card
-                                  :key="tx.id"
-                                  class="my-2"
-                                  tile
-                                  v-for="(tx,i) in mempool"
-                          >
-                              <v-card-title>
-                                  Tx #{{i}}
-                              </v-card-title>
-                              <v-card-text>
-                                  {{tx}}
-                              </v-card-text>
-                          </v-card>
-                      </div>
-                  </v-tab-item>
-                  <v-tab-item>
-                      <div class="mx-4">
-                          <v-card
-                                  :key="tx.id"
-                                  class="my-2"
-                                  tile
-                                  v-for="(tx,i) in orphan_pool"
-                          >
-                              <v-card-title>
-                                  Tx #{{i}}
-                              </v-card-title>
-                              <v-card-text>
-                                  {{tx}}
-                              </v-card-text>
-                          </v-card>
-                      </div>
-                  </v-tab-item>
-                  <v-tab-item>
-                      <div class="mx-4">
-                          <v-card
-                                  :key="block.hash"
-                                  class="my-2"
-                                  tile
-                                  v-for="(block,i) in orphan_block"
-                          >
-                              <v-card-title>
-                                  Block #{{i}}
-                              </v-card-title>
-                              <v-card-text>
-                                  {{block}}
-                              </v-card-text>
-                          </v-card>
-                      </div>
-                  </v-tab-item>
-                  <v-tab-item>
-                      <v-subheader>添加邻居</v-subheader>
-                      <div class="mx-4">
-                          <v-text-field
-                                  label="地址"
-                                  placeholder="e.g. localhost:5000"
-                                  v-model="peer_node"
-                          />
-                      </div>
-                      <v-btn @click="addPeer(peer_node)" class="mx-4">
-                          添加
-                      </v-btn>
-                      <v-subheader>邻居地址</v-subheader>
-                      <v-list>
-                          <v-list-item :key="peer" v-for="peer in peers">
-                              <v-list-item-content>
-                                  {{peer}}
-                              </v-list-item-content>
-                              <v-list-item-action>
-                                  <v-btn icon>
-                                      <v-icon>mdi-delete</v-icon>
-                                  </v-btn>
-                              </v-list-item-action>
-                          </v-list-item>
-                      </v-list>
-                  </v-tab-item>
-              </v-tabs-items>
-          </v-content>
+                </v-list-item-action>
+              </v-list-item>
+            </v-list>
+          </v-tab-item>
+        </v-tabs-items>
+      </v-content>
 
-          <v-footer absolute app color="primary lighten-1" padless>
-              <v-row justify="center" no-gutters>
-                  <v-col
-                          class="primary lighten-2 py-4 text-center white--text"
-                          cols="12"
-                  >©{{ new Date().getFullYear() }}
-                  </v-col>
-              </v-row>
-          </v-footer>
-          <v-dialog v-model="dialog_new_tx" width="800px">
-              <v-card>
-                  <v-card-title class="primary">
-                      创建交易
-                  </v-card-title>
-                  <v-container>
-                      <v-col cols="12">
-                          <v-alert type="error" v-if="alert">{{alert_msg}}</v-alert>
-                      </v-col>
-                      <v-row class="mx-2">
-                          <v-col cols="12">
-                              <v-text-field
-                                      label="对方地址"
-                                      prepend-icon="mdi-mail"
-                                      v-model="new_tx.addr"
-                              />
-                          </v-col>
-                          <v-col cols="12">
-                              <v-text-field
-                                      label="金额"
-                                      prepend-icon="mdi-text"
-                                      v-model="new_tx.value"
-                              />
-                          </v-col>
-                      </v-row>
-                  </v-container>
-                  <v-card-actions>
-                      <v-btn @click="dialog_new_tx = false;alert = false;" text
-                      >取消
-                      </v-btn>
-                      <v-btn
-                              @click="createTransaction(new_tx.addr,new_tx.value)"
-                              color="primary"
-                              text
-                      >确定
-                      </v-btn>
-                  </v-card-actions>
-              </v-card>
-          </v-dialog>
-          <v-snackbar v-model="snackbar">
-              {{ snackbar_text }}
-              <v-btn @click="snackbar = false" color="primary" text>
-                  关闭
-              </v-btn>
-          </v-snackbar>
-      </v-app>
+      <v-footer absolute app color="primary lighten-1" padless>
+        <v-row justify="center" no-gutters>
+          <v-col
+                  class="primary lighten-2 py-4 text-center white--text"
+                  cols="12"
+          >©{{ new Date().getFullYear() }}
+          </v-col>
+        </v-row>
+      </v-footer>
+      <v-dialog v-model="dialog_new_tx" width="800px">
+        <v-card>
+          <v-card-title class="primary">
+            创建交易
+          </v-card-title>
+          <v-container>
+            <v-col cols="12">
+              <v-alert type="error" v-if="alert">{{alert_msg}}</v-alert>
+            </v-col>
+            <v-row class="mx-2">
+              <v-col cols="12">
+                <v-text-field
+                        label="对方地址"
+                        prepend-icon="mdi-mail"
+                        v-model="new_tx.addr"
+                />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                        label="金额"
+                        prepend-icon="mdi-text"
+                        v-model="new_tx.value"
+                />
+              </v-col>
+            </v-row>
+          </v-container>
+          <v-card-actions>
+            <v-btn @click="dialog_new_tx = false;alert = false;" text
+            >取消
+            </v-btn>
+            <v-btn
+                    @click="createTransaction(new_tx.addr,new_tx.value)"
+                    color="primary"
+                    text
+            >确定
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      <v-snackbar v-model="snackbar">
+        {{ snackbar_text }}
+        <v-btn @click="snackbar = false" color="primary" text>
+          关闭
+        </v-btn>
+      </v-snackbar>
+    </v-app>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
@@ -289,323 +292,334 @@
   <script src="https://cdn.bootcss.com/axios/0.19.2/axios.min.js"></script>
   <script src="https://cdn.bootcss.com/socket.io/2.3.0/socket.io.js"></script>
   <script>
-      new Vue({
-          el: "#app",
-          vuetify: new Vuetify(),
-          props: {
-              source: String,
-          },
-          data: () => ({
-              wallet: null,
-              balance: 0,
-              error: null,
-              tab: 0,
-              tabs: [
-                  "区块链",
-                  "离线交易",
-                  "UTXO池",
-                  "交易池",
-                  "孤立交易",
-                  "孤立区块",
-                  "网络邻居",
-              ],
-              candidate_block: null,
-              chain: [],
-              utxos: [],
-              mempool: [],
-              txs: [],
-              orphan_pool: [],
-              orphan_block: [],
-              dialog_new_tx: false,
-              new_tx: {
-                  addr: "",
-                  value: "",
-              },
-              alert: false,
-              alert_msg: "",
-              debug: "",
-              peers: [],
-              peer_node: "",
-              snackbar_text: "",
-              snackbar: false,
-              socket: io(),
-          }),
-          mounted: function () {
-              this.update();
-              this.socket.on("mine", this.notifyMine);
-              this.socket.on("notify", this.notify);
-              this.socket.on("peer", this.notifyPeer);
-          },
-          methods: {
-              notifyMine: function (message) {
-                  this.candidate_block = message;
-                  this.showSnackbar("已完成共识");
-              },
-              notify: function (message) {
-                  this.update();
-              },
-              notifyPeer: function (message) {
-                  console.log(1);
-                  this.loadPeers();
-              },
-              showDialogAlert: function (message) {
-                  this.alert_msg = message;
-                  this.alert = true;
-              },
-              showSnackbar: function (message) {
-                  this.snackbar_text = message;
-                  this.snackbar = true;
-              },
-              loadFromFile: async function () {
-                  try {
-                      const response = await axios.post("/load-data");
-                      result = response.data.message;
-                      this.showSnackbar(result ? "加载成功" : "加载失败");
-                      this.update();
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              saveToFile: async function () {
-                  try {
-                      const response = await axios.post("/save-data");
-                      result = response.data.message;
-                      this.showSnackbar(result ? "保存成功" : "保存失败");
-                      this.update();
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadWallet: async function () {
-                  try {
-                      const response = await axios.get("/wallet");
-                      this.wallet = {
-                          addr: response.data.addr,
-                          pk: response.data.pk,
-                          sk: response.data.sk,
-                      };
-                      this.balance = response.data.balance;
-                      this.show = true;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              newWallet: async function () {
-                  try {
-                      const response = await axios.post("/wallet");
-                      this.wallet = {
-                          addr: response.data.addr,
-                          pk: response.data.pk,
-                          sk: response.data.sk,
-                      };
-                      this.balance = response.data.balance;
-                      this.show = true;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadChain: async function () {
-                  try {
-                      const response = await axios.get("/chain");
-                      this.chain = response.data;
-                      this.debug = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadUTXO: async function () {
-                  try {
-                      const response = await axios.get("/utxo-set");
-                      this.utxos = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadMemPool: async function () {
-                  try {
-                      const response = await axios.get("/mem-pool");
-                      this.mempool = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadTxs: async function () {
-                  try {
-                      const response = await axios.get("/txs");
-                      this.txs = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadOrphanPool: async function () {
-                  try {
-                      const response = await axios.get("/orphan-pool");
-                      this.orphan_pool = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadOrphanBlock: async function () {
-                  try {
-                      const response = await axios.get("/orphan-block");
-                      this.orphan_block = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              changeTab: function (event) {
-                  /*switch (this.tab) {
-              case 0:
-                this.loadChain();
-                break;
-              case 1:
-                this.loadUTXO();
-                break;
-              case 2:
-                this.loadMemPool();
-                break;
-              case 3:
-                this.loadTxs();
-                break;
-              case 4:
-                this.loadPeers();
-                break;
-              default:
-                break;
-            }*/
-              },
-              createTransaction: async function (addr, value) {
-                  if (value.trim() == "" || addr.trim() == "") {
-                      this.showDialogAlert("请填写地址和金额！");
-                      return;
-                  } else if (value > this.balance) {
-                      this.showDialogAlert("余额不足！");
-                      return;
-                  }
-                  this.alert = false;
-                  let formData = new FormData();
+    new Vue({
+      el: "#app",
+      vuetify: new Vuetify(),
+      props: {
+        source: String,
+      },
+      data: () => ({
+        wallet: null,
+        balance: 0,
+        error: null,
+        tab: 0,
+        tabs: [
+          "区块链",
+          "离线交易",
+          "UTXO池",
+          "交易池",
+          "孤立交易",
+          "孤立区块",
+          "网络邻居",
+        ],
+        candidate_block: null,
+        chain: [],
+        utxos: [],
+        mempool: [],
+        txs: [],
+        orphan_pool: [],
+        orphan_block: [],
+        dialog_new_tx: false,
+        new_tx: {
+          addr: "",
+          value: "",
+        },
+        alert: false,
+        alert_msg: "",
+        debug: "",
+        peers: [],
+        peer_node: "",
+        snackbar_text: "",
+        snackbar: false,
+        socket: io(),
+      }),
+      mounted: function () {
+        this.update();
+        this.socket.on("mine", this.notifyMine);
+        this.socket.on("notify", this.notify);
+        this.socket.on("peer", this.notifyPeer);
+      },
+      methods: {
+        notifyMine: function (message) {
+          this.candidate_block = message;
+          this.showSnackbar("已完成共识");
+        },
+        notify: function (message) {
+          this.update();
+        },
+        notifyPeer: function (message) {
+          console.log(1);
+          this.loadPeers();
+        },
+        showDialogAlert: function (message) {
+          this.alert_msg = message;
+          this.alert = true;
+        },
+        showSnackbar: function (message) {
+          this.snackbar_text = message;
+          this.snackbar = true;
+        },
+        loadFromFile: async function () {
+          try {
+            const response = await axios.post("/load-data");
+            result = response.data.message;
+            this.showSnackbar(result ? "加载成功" : "加载失败");
+            this.update();
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        saveToFile: async function () {
+          try {
+            const response = await axios.post("/save-data");
+            result = response.data.message;
+            this.showSnackbar(result ? "保存成功" : "保存失败");
+            this.update();
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadWallet: async function () {
+          try {
+            const response = await axios.get("/wallet");
+            this.wallet = {
+              addr: response.data.addr,
+              pk: response.data.pk,
+              sk: response.data.sk,
+            };
+            this.balance = response.data.balance;
+            this.show = true;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        newWallet: async function () {
+          try {
+            const response = await axios.post("/wallet");
+            this.wallet = {
+              addr: response.data.addr,
+              pk: response.data.pk,
+              sk: response.data.sk,
+            };
+            this.balance = response.data.balance;
+            this.show = true;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadChain: async function () {
+          try {
+            const response = await axios.get("/chain");
+            this.chain = response.data;
+            this.debug = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadUTXO: async function () {
+          try {
+            const response = await axios.get("/utxo-set");
+            this.utxos = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadMemPool: async function () {
+          try {
+            const response = await axios.get("/mem-pool");
+            this.mempool = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadTxs: async function () {
+          try {
+            const response = await axios.get("/txs");
+            this.txs = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadOrphanPool: async function () {
+          try {
+            const response = await axios.get("/orphan-pool");
+            this.orphan_pool = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadOrphanBlock: async function () {
+          try {
+            const response = await axios.get("/orphan-block");
+            this.orphan_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        changeTab: function (event) {
+          /*switch (this.tab) {
+            case 0:
+              this.loadChain();
+              break;
+            case 1:
+              this.loadUTXO();
+              break;
+            case 2:
+              this.loadMemPool();
+              break;
+            case 3:
+              this.loadTxs();
+              break;
+            case 4:
+              this.loadPeers();
+              break;
+            default:
+              break;
+          }*/
+        },
+        createTransaction: async function (addr, value) {
+          if (value.trim() == "" || addr.trim() == "") {
+            this.showDialogAlert("请填写地址和金额！");
+            return;
+          } else if (value > this.balance) {
+            this.showDialogAlert("余额不足！");
+            return;
+          }
+          this.alert = false;
+          let formData = new FormData();
 
-                  formData.append("addr", addr);
-                  formData.append("value", value);
-                  try {
-                      const response = await axios.post("/transaction", formData);
-                      if ("message" in response.data) {
-                          this.showDialogAlert(response.data.message);
-                          return;
-                      }
-                      this.txs = response.data;
-                      this.dialog_new_tx = false;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              update: async function () {
-                  this.loadWallet();
-                  this.loadChain();
-                  this.loadUTXO();
-                  this.loadMemPool();
-                  this.loadTxs();
-                  this.loadPeers();
-                  this.loadCandidateBlock();
-                  this.loadOrphanPool();
-                  this.loadOrphanBlock();
-              },
-              loadCandidateBlock: async function () {
-                  try {
-                      const response = await axios.get("/candidate-block");
-                      this.candidate_block = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              loadPeers: async function () {
-                  try {
-                      const response = await axios.get("/peers");
-                      this.peers = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              addPeer: async function (node) {
-                  if (node.trim() == "") {
-                      this.showSnackbar("请输入邻居地址");
-                  }
-                  let formData = new FormData();
-                  formData.append("node", node);
-                  try {
-                      const response = await axios.post("/peers", formData);
-                      if ("message" in response.data) {
-                          this.showSnackbar(response.data.message);
-                          return;
-                      }
-                      this.peers = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              broadcastTransaction: async function () {
-                  if (this.txs.length == 0) {
-                      this.showSnackbar("还没有离线交易！");
-                  }
-                  try {
-                      const response = await axios.post("/broadcast-txs");
-                      if ("message" in response.data) {
-                          this.showSnackbar(response.data.message);
-                      }
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              createCandidateBlock: async function () {
-                  if (this.mempool.length == 0) {
-                      this.showSnackbar("交易池为空！");
-                  }
-                  try {
-                      const response = await axios.post("/candidate-block");
-                      this.candidate_block = response.data;
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-              mine: function () {
-                  if (this.mempool.length == 0) {
-                      this.showSnackbar("交易池为空！");
-                      return;
-                  }
-                  this.socket.emit("mine", "Start mining!");
-              },
-              broadcastBlock: async function () {
-                  if (this.candidate_block == null) {
-                      this.showSnackbar("还未创建候选区块！");
-                  }
-                  try {
-                      const response = await axios.post("/broadcast-block");
-                      if ("message" in response.data) {
-                          this.showSnackbar(response.data.message);
-                      }
-                  } catch (error) {
-                      console.log(error);
-                      this.error = error.message;
-                  }
-              },
-          },
-      });
+          formData.append("addr", addr);
+          formData.append("value", value);
+          try {
+            const response = await axios.post("/transaction", formData);
+            if ("message" in response.data) {
+              this.showDialogAlert(response.data.message);
+              return;
+            }
+            this.txs = response.data;
+            this.dialog_new_tx = false;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        update: async function () {
+          this.loadWallet();
+          this.loadChain();
+          this.loadUTXO();
+          this.loadMemPool();
+          this.loadTxs();
+          this.loadPeers();
+          this.loadCandidateBlock();
+          this.loadOrphanPool();
+          this.loadOrphanBlock();
+        },
+        loadCandidateBlock: async function () {
+          try {
+            const response = await axios.get("/candidate-block");
+            this.candidate_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        loadPeers: async function () {
+          try {
+            const response = await axios.get("/peers");
+            this.peers = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        addPeer: async function (node) {
+          if (node.trim() == "") {
+            this.showSnackbar("请输入邻居地址");
+          }
+          let formData = new FormData();
+          formData.append("node", node);
+          try {
+            const response = await axios.post("/peers", formData);
+            if ("message" in response.data) {
+              this.showSnackbar(response.data.message);
+              return;
+            }
+            this.peers = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        broadcastTransaction: async function () {
+          if (this.txs.length == 0) {
+            this.showSnackbar("还没有离线交易！");
+          }
+          try {
+            const response = await axios.post("/broadcast-txs");
+            if ("message" in response.data) {
+              this.showSnackbar(response.data.message);
+            }
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        createCandidateBlock: async function () {
+          if (this.mempool.length == 0) {
+            this.showSnackbar("交易池为空！");
+          }
+          try {
+            const response = await axios.post("/candidate-block");
+            this.candidate_block = response.data;
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        mine: function () {
+          if (this.mempool.length == 0) {
+            this.showSnackbar("交易池为空！");
+            return;
+          }
+          this.socket.emit("mine", "Start mining!");
+        },
+        broadcastBlock: async function () {
+          if (this.candidate_block == null) {
+            this.showSnackbar("还未创建候选区块！");
+          }
+          try {
+            const response = await axios.post("/broadcast-block");
+            if ("message" in response.data) {
+              this.showSnackbar(response.data.message);
+            }
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+        updateChain: async function () {
+          try {
+            const response = await axios.post("/update-chain");
+            if ("message" in response.data) {
+              this.showSnackbar(response.data.message);
+            }
+          } catch (error) {
+            console.log(error);
+            this.error = error.message;
+          }
+        },
+      },
+    });
   </script>
   </body>
 </html>

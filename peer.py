@@ -386,7 +386,8 @@ class Peer:
         else:
             self.peer_nodes.add(f'{addr}:{port}')
 
-    def login(self):
+    def login(self) -> None:
+        """连接到种子服务器"""
         addr, port = SEED_NODE_ADDR
         url = f'http://{addr}:{port}/login'
         payload = {'port': self.port}
@@ -395,7 +396,7 @@ class Peer:
         except:
             logger.debug('连接种子服务器失败！')
 
-    def update_peer(self):
+    def update_peer(self) -> bool:
         """向种子服务器获取在线节点"""
         logger.info('开始更新网络邻居')
         addr, port = SEED_NODE_ADDR
@@ -411,7 +412,7 @@ class Peer:
             self.add_peer(node[0], int(node[1]))
         return True
 
-    def wrapped_update_peer(self, interval=10, callback=None):
+    def wrapped_update_peer(self, interval=10, callback=None) -> None:
         """
         提供给自动更新的包裹函数
         :param callback: 回调函数
@@ -424,7 +425,7 @@ class Peer:
             if callback:
                 callback()
 
-    def automatic_update_peer(self, interval=10, callback=None):
+    def automatic_update_peer(self, interval=10, callback=None) -> None:
         """
         自动更新在线列表
         :param callback: 回调函数
@@ -432,3 +433,43 @@ class Peer:
         """
         update_thread = threading.Thread(target=self.wrapped_update_peer, args=(interval, callback))
         update_thread.start()
+
+    def update_chain(self):
+        """从P2P网络中获取最长链更新本地区块链"""
+        if len(self.peer_nodes) == 0:
+            return False
+        logger.info('开始更新区块链！')
+        longest_node = None
+        highest = len(self.chain)
+        peer_nodes = self.peer_nodes.copy()
+        for node in peer_nodes:
+            url = f'http://{node}/chain-height'
+            logger.debug(url)
+            try:
+                response = requests.get(url)
+                height = int(response.text)
+                if height > highest:
+                    highest = height
+                    longest_node = node
+                    logger.debug(f'longest = {longest_node}')
+            except:
+                logger.debug(f'访问{node}区块链长度失败！')
+        if longest_node is None:
+            return False
+        try:
+            url = f'http://{longest_node}/chain'
+            response = requests.get(url)
+            self.replace_chain(response.json())
+            return True
+        except:
+            logger.debug(f'访问{longest_node}区块链失败！')
+            return False
+
+    def replace_chain(self, chain_json):
+        """替换本地区块链"""
+        blocks = [Block.from_dict(block) for block in chain_json[1:]]
+        self.chain.clear()
+        self.utxo_set.clear()
+        self.load_genesis_block(self.genesis_block_file)
+        for block in blocks:
+            self.receive_block(block)
