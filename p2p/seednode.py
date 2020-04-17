@@ -4,7 +4,7 @@ import time
 import requests
 from flask import Flask, request, jsonify
 
-from network.config import SEED_PORT, UPDATE_INTERVAL
+from p2p.config import SEED_PORT, UPDATE_INTERVAL
 from utils.log import logger
 
 app = Flask(__name__)

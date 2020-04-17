@@ -2,10 +2,10 @@ import unittest
 
 import ecdsa
 
-from params import Params
-from transaction import Tx, Pointer, Vin
+from blockchain.params import Params
+from blockchain.transaction import Tx, Pointer, Vin
+from blockchain.vm import StackMachine
 from utils.hash_utils import convert_pubkey_to_addr, sha256d
-from vm import StackMachine
 
 
 class TestStackMachine(unittest.TestCase):

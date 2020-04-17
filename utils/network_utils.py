@@ -1,6 +1,6 @@
-from block import Block
-from params import Params
-from transaction import Vin, Vout, Tx
+from blockchain.block import Block
+from blockchain.params import Params
+from blockchain.transaction import Vin, Vout, Tx
 from utils.transaction_utils import add_utxos_to_set, find_utxos_from_block
 
 

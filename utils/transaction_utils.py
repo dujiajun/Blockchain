@@ -1,4 +1,4 @@
-from transaction import UTXO, Pointer
+from blockchain.transaction import UTXO, Pointer
 
 
 def add_tx_to_mem_pool(peer, tx):

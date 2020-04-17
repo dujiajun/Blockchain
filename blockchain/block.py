@@ -1,8 +1,8 @@
 from time import time
 
-from merkle_tree import get_merkle_root_of_txs
-from params import Params
-from transaction import Tx
+from blockchain.merkle_tree import get_merkle_root_of_txs
+from blockchain.params import Params
+from blockchain.transaction import Tx
 from utils.hash_utils import sha256d
 from utils.printable import Printable
 

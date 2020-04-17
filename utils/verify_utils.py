@@ -1,13 +1,13 @@
 import ecdsa
 
-from block import Block
-from consensus import calculate_target
-from params import Params
-from transaction import Tx
+from blockchain.block import Block
+from blockchain.consensus import calculate_target
+from blockchain.params import Params
+from blockchain.transaction import Tx
+from blockchain.wallet import Wallet
 from utils.hash_utils import convert_pubkey_to_addr
 from utils.log import logger
 from utils.transaction_utils import add_tx_to_mem_pool, calculate_fees
-from wallet import Wallet
 
 
 def verify_tx_basic(tx):

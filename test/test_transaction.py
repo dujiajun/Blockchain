@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from transaction import *
+from blockchain.transaction import *
 from utils.json_utils import MyJSONEncoder
 
 

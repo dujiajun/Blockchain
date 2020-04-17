@@ -6,13 +6,12 @@ from typing import Dict, List
 
 import requests
 
+from blockchain.consensus import mine
+from blockchain.transaction import Vout, Vin
 from config import SEED_NODE_ADDR
-from consensus import mine
-from transaction import Vout, Vin
 from utils.json_utils import MyJSONEncoder
 from utils.transaction_utils import *
 from utils.verify_utils import *
-from wallet import Wallet
 
 
 class Peer:

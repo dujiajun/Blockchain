@@ -2,8 +2,8 @@ from typing import List, Optional
 
 import ecdsa
 
-from params import Params
-from transaction import Pointer, Vout
+from blockchain.params import Params
+from blockchain.transaction import Pointer, Vout
 from utils.hash_utils import convert_pubkey_to_addr, build_message
 from utils.printable import Printable
 

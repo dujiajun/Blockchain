@@ -1,6 +1,6 @@
 import unittest
 
-from merkle_tree import *
+from blockchain.merkle_tree import *
 
 
 class TestMerkle(unittest.TestCase):

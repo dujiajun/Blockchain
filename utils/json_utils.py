@@ -1,8 +1,8 @@
 import ecdsa
 from flask.json import JSONEncoder
 
-from block import Block
-from transaction import Vout, Tx
+from blockchain.block import Block
+from blockchain.transaction import Vout, Tx
 from utils.printable import Printable
 
 

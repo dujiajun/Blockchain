@@ -1,14 +1,14 @@
 import json
 import unittest
 
-from block import Block
-from consensus import mine, calculate_target
-from params import Params
-from transaction import Vin, Vout, Tx
+from blockchain.block import Block
+from blockchain.consensus import mine, calculate_target
+from blockchain.params import Params
+from blockchain.transaction import Vin, Vout, Tx
+from blockchain.wallet import Wallet
 from utils.hash_utils import sha256d
 from utils.json_utils import MyJSONEncoder
 from utils.log import logger
-from wallet import Wallet
 
 
 class TestBlock(unittest.TestCase):

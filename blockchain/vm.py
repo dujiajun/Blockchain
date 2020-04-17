@@ -2,7 +2,7 @@ from typing import List
 
 import ecdsa
 
-from params import Params
+from blockchain.params import Params
 from utils.hash_utils import convert_pubkey_to_addr, sha256d
 
 

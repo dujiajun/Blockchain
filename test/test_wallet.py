@@ -2,7 +2,7 @@ import unittest
 
 import ecdsa
 
-from wallet import Wallet
+from blockchain.wallet import Wallet
 
 
 class TestWallet(unittest.TestCase):

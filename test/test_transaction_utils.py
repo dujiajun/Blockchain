@@ -1,7 +1,7 @@
 import unittest
 
+from blockchain.transaction import Vin, Vout
 from peer import Peer, Tx
-from transaction import Vin, Vout
 from utils.transaction_utils import *
 
 
