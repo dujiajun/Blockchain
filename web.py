@@ -27,6 +27,7 @@ port = args.port
 
 peer = Peer(port=port, ws_notify=notify)
 peer.init()
+peer.p2p_run()
 
 
 @app.route('/')
@@ -84,11 +85,6 @@ def generate_keys():
 @app.route('/chain', methods=['GET'])
 def get_chain():
     return jsonify(peer.chain)
-
-
-@app.route('/chain-height', methods=['GET'])
-def get_chain_height():
-    return jsonify(len(peer.chain))
 
 
 @app.route('/mem-pool', methods=['GET'])
@@ -191,4 +187,4 @@ def update_chain():
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, host='0.0.0.0', port=port)

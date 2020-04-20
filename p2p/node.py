@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 import socket
 import threading
@@ -26,7 +24,7 @@ class ActionType(Enum):
     BLOCK = 'block'
 
 
-def create_message(action_type: ActionType, data: Union[dict, str, set]) -> dict:
+def create_message(action_type: ActionType, data: Union[int, dict, str, set]) -> dict:
     """
     构建消息包对象
     :param action_type: 消息类型
@@ -39,7 +37,7 @@ def create_message(action_type: ActionType, data: Union[dict, str, set]) -> dict
     return message
 
 
-class P2PNode:
+class P2PNode(object):
     """P2P节点对象"""
 
     def __init__(self, port: int, blockchain=None):
@@ -130,7 +128,6 @@ class P2PNode:
                 logger.debug(e)
                 continue
             action = json.loads(data.decode(encoding='utf-8'))
-            # logger.debug(f'receive from {addr}: {action}')
             if action['type'] == ActionType.NEW_PEER.value:
                 self.add_peer(addr)
                 self.send_peers(addr)
@@ -139,11 +136,13 @@ class P2PNode:
                 self.peers.update(peers)
                 self.broadcast_introduce()
             elif action['type'] == ActionType.INTRODUCE.value:
-                self.blockchain.notify('peer', 'new peers')
+                if self.blockchain:
+                    self.blockchain.notify('peer', 'new peers')
                 self.add_peer(addr)
             elif action['type'] == ActionType.HEARTBEAT_REQUEST.value:
                 self.send_heartbeat_response(addr)
             elif action['type'] == ActionType.HEARTBEAT_RESPONSE.value:
+                self.blockchain.update_longest(action['data'], addr)
                 self.add_peer(addr)
             elif action['type'] == ActionType.TXS.value:
                 self.receive_txs(action['data'])
@@ -205,7 +204,8 @@ class P2PNode:
         响应心跳包
         :param to: 回复地址
         """
-        self.send(create_message(ActionType.HEARTBEAT_RESPONSE, ''), to)
+        data = len(self.blockchain.chain) if self.blockchain else 0
+        self.send(create_message(ActionType.HEARTBEAT_RESPONSE, data), to)
 
     def keep_alive(self):
         """心跳机制"""

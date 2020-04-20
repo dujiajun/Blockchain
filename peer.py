@@ -1,4 +1,5 @@
 import json
+import threading
 from os.path import exists
 from typing import Dict, List, Optional
 
@@ -34,7 +35,6 @@ class Peer:
         self.allow_utxo_from_pool = False
         self.orphan_block = []
         self.candidate_block = None
-        self.port = port
         self.fee = Params.DEFAULT_FEE
 
         self.__utxos_from_vins = []
@@ -45,7 +45,11 @@ class Peer:
         self.p2p_node = P2PNode(port=port, blockchain=self)
         self.ws_notify = ws_notify
 
-    def init(self, run_p2p=True):
+        self.longest_node = None
+        self.longest_chain_length = 0
+        self.longest_lock = threading.Lock()
+
+    def init(self):
         """从本地文件（若存在）初始化节点"""
         if exists(self.wallet_file):
             self.wallet.load_keys(self.wallet_file)
@@ -55,11 +59,17 @@ class Peer:
             self.load_genesis_block()
         if exists(self.blockchain_file):
             self.load_data()
-        if run_p2p:
-            self.p2p_node.run()
+
+    def p2p_run(self):
+        """运行P2P网络"""
+        self.p2p_node.run()
 
     @property
     def peer_nodes(self):
+        """
+        获取P2P网络在线节点列表
+        :return: 在线节点列表
+        """
         return self.p2p_node.get_peers()
 
     @property
@@ -348,25 +358,12 @@ class Peer:
 
     def update_chain(self):
         """从P2P网络中获取最长链更新本地区块链"""
-        if len(self.peer_nodes) == 0:
-            return False
+        self.longest_lock.acquire()
+        longest_node = self.longest_node
+        self.longest_lock.release()
         logger.info('开始更新区块链！')
-        longest_node = None
-        highest = len(self.chain)
-        peer_nodes = self.p2p_node.get_peers()
-        for node in peer_nodes:
-            url = f'http://{node[0]}:{node[1]}/chain-height'
-            logger.debug(url)
-            try:
-                response = requests.get(url)
-                height = int(response.text)
-                if height > highest:
-                    highest = height
-                    longest_node = node
-                    logger.debug(f'longest = {longest_node}')
-            except:
-                logger.debug(f'访问{node}区块链长度失败！')
         if longest_node is None:
+            logger.info('当前无比自己更长的链')
             return False
         try:
             url = f'http://{longest_node[0]}:{longest_node[1]}/chain'
@@ -394,3 +391,15 @@ class Peer:
         """
         if self.ws_notify:
             self.ws_notify(event, message)
+
+    def update_longest(self, length: int, addr: tuple):
+        """
+        更新最长链信息
+        :param length: 链长度
+        :param addr: 地址
+        """
+        self.longest_lock.acquire()
+        if length > self.longest_chain_length:
+            self.longest_chain_length = length
+            self.longest_node = addr
+        self.longest_lock.release()
