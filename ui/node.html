@@ -217,7 +217,7 @@
             <v-list>
               <v-list-item :key="peer" v-for="peer in peers">
                 <v-list-item-content>
-                  {{peer}}
+                  {{peer[0]}}:{{peer[1]}}
                 </v-list-item-content>
                 <v-list-item-action>
                   <v-btn icon>
@@ -337,27 +337,30 @@
         this.update();
         this.socket.on("mine", this.notifyMine);
         this.socket.on("notify", this.notify);
-        this.socket.on("peer", this.notifyPeer);
+          this.socket.on("peer", this.notifyPeer);
+          this.socket.on("message", this.notifyMessage);
       },
       methods: {
-        notifyMine: function (message) {
-          this.candidate_block = message;
-          this.showSnackbar("已完成共识");
-        },
-        notify: function (message) {
-          this.update();
-        },
-        notifyPeer: function (message) {
-          console.log(1);
-          this.loadPeers();
-        },
-        showDialogAlert: function (message) {
-          this.alert_msg = message;
-          this.alert = true;
-        },
-        showSnackbar: function (message) {
-          this.snackbar_text = message;
-          this.snackbar = true;
+          notifyMine: function (message) {
+              this.candidate_block = message;
+              this.showSnackbar("已完成共识");
+          },
+          notify: function (message) {
+              this.update();
+          },
+          notifyMessage: function (message) {
+              this.showSnackbar(message);
+          },
+          notifyPeer: function (message) {
+              this.loadPeers();
+          },
+          showDialogAlert: function (message) {
+              this.alert_msg = message;
+              this.alert = true;
+          },
+          showSnackbar: function (message) {
+              this.snackbar_text = message;
+              this.snackbar = true;
         },
         loadFromFile: async function () {
           try {

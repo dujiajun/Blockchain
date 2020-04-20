@@ -1,14 +1,12 @@
 import json
-import threading
-import time
 from os.path import exists
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import requests
 
 from blockchain.consensus import mine
 from blockchain.transaction import Vout, Vin
-from config import SEED_NODE_ADDR
+from p2p.node import P2PNode
 from utils.json_utils import MyJSONEncoder
 from utils.transaction_utils import *
 from utils.verify_utils import *
@@ -18,17 +16,17 @@ class Peer:
     """区块链的参与者对象"""
 
     def __init__(self,
-                 wallet_file='wallet_{0}.txt',
-                 blockchain_file='blockchain_{0}.txt',
-                 genesis_block_file='genesis_block.txt',
-                 port=5000):
+                 wallet_file: str = 'wallet_{0}.txt',
+                 blockchain_file: str = 'blockchain_{0}.txt',
+                 genesis_block_file: str = 'genesis_block.txt',
+                 port: int = 5000,
+                 ws_notify: Optional[callable] = None):
         self.wallet_file = wallet_file.format(port)
         self.blockchain_file = blockchain_file.format(port)
         self.genesis_block_file = genesis_block_file
 
         self.chain = []
         self.txs = []  # 离线交易
-        self.peer_nodes = set()
         self.utxo_set: Dict[Pointer, UTXO] = {}
         self.mem_pool: Dict[str, Tx] = {}
         self.orphan_pool: Dict[str, Tx] = {}
@@ -44,7 +42,10 @@ class Peer:
         self.__pointers_from_vouts = []
         self.__txs_removed = {}
 
-    def init(self):
+        self.p2p_node = P2PNode(port=port, blockchain=self)
+        self.ws_notify = ws_notify
+
+    def init(self, run_p2p=True):
         """从本地文件（若存在）初始化节点"""
         if exists(self.wallet_file):
             self.wallet.load_keys(self.wallet_file)
@@ -54,6 +55,12 @@ class Peer:
             self.load_genesis_block()
         if exists(self.blockchain_file):
             self.load_data()
+        if run_p2p:
+            self.p2p_node.run()
+
+    @property
+    def peer_nodes(self):
+        return self.p2p_node.get_peers()
 
     @property
     def addr(self):
@@ -135,22 +142,6 @@ class Peer:
         self.txs.append(tx)
         return True
 
-    def broadcast_transaction(self, tx: Tx) -> None:
-        """
-        广播单条交易
-        :param tx: 交易
-        """
-        # add_tx_to_mem_pool(self, tx)  # 离线交易进入交易池
-        payload = {'tx': str(tx)}
-
-        for node in self.peer_nodes:
-            url = f"http://{node}/broadcast-transaction"
-            logger.info(f"广播交易：向{node}广播交易")
-            try:
-                requests.post(url, payload)
-            except Exception:
-                logger.debug(f'向{node}广播失败！')
-
     def receive_transaction(self, tx: Tx) -> bool:
         """
         接收交易并将其放入交易池中
@@ -163,7 +154,7 @@ class Peer:
                 sign_utxo_from_tx(self.utxo_set, tx)
                 add_tx_to_mem_pool(self, tx)
                 return True
-        logger.info(f"接收交易：验证交易失败：{tx}")
+        logger.info(f"接收交易：验证交易失败或已在交易池中：{tx}")
         return False
 
     def broadcast_txs(self) -> bool:
@@ -176,20 +167,7 @@ class Peer:
             logger.info("广播交易：邻居为空")
             return False
 
-        # 离线交易进入交易池
-        # for tx in self.txs:
-        #     sign_utxo_from_tx(self.utxo_set, tx)
-        #     add_tx_to_mem_pool(self, tx)
-
-        # 广播时让对方发现自己端口号（request可获取IP地址）
-        payload = {'port': self.port, 'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
-        for node in self.peer_nodes:
-            url = f"http://{node}/receive-transaction"
-            logger.info(f"广播交易：向{node}广播离线交易")
-            try:
-                requests.post(url, payload)
-            except:
-                logger.debug(f'向{node}广播失败！')
+        self.p2p_node.broadcast_txs(self.txs)
         self.txs.clear()
         return True
 
@@ -244,15 +222,8 @@ class Peer:
         if self.candidate_block is None:
             logger.info("广播区块：未创建候选区块")
             return False
-        payload = {'port': self.port, 'block': json.dumps(self.candidate_block, cls=MyJSONEncoder)}
-        for node in self.peer_nodes:
-            url = f"http://{node}/receive-block"
-            logger.info(f"广播区块：向{node}广播区块")
-            try:
-                requests.post(url, payload)
-            except:
-                logger.debug(f'向{node}广播失败！')
-        # self.receive_block(self.candidate_block)
+
+        self.p2p_node.broadcast_block(self.candidate_block)
         self.candidate_block = None
         return True
 
@@ -334,8 +305,6 @@ class Peer:
             utxos = [utxo for utxo in self.utxo_set.values()]
             f.write(json.dumps(utxos, cls=MyJSONEncoder))
             f.write('\n')
-            f.write(json.dumps(list(self.peer_nodes)))
-            f.write('\n')
             f.write(json.dumps(self.candidate_block, cls=MyJSONEncoder))
             f.write('\n')
             orphan_txs = list(self.orphan_pool.values())
@@ -366,72 +335,16 @@ class Peer:
                 utxo = UTXO.from_dict(utxo_dic)
                 self.utxo_set[utxo.pointer] = utxo
 
-            self.peer_nodes = set(json.loads(lines[4]))
-            self.candidate_block = Block.from_dict(json.loads(lines[5]))
+            self.candidate_block = Block.from_dict(json.loads(lines[4]))
 
-            orphan_txs = json.loads(lines[6])
+            orphan_txs = json.loads(lines[5])
             self.orphan_pool.clear()
             for tx_dic in orphan_txs:
                 tx = Tx.from_dict(tx_dic)
                 self.orphan_pool[tx.id] = tx
 
-            orphan_blocks = json.loads(lines[7])
+            orphan_blocks = json.loads(lines[6])
             self.orphan_block = [Block.from_dict(block) for block in orphan_blocks]
-
-    def add_peer(self, addr: str, port: int = None) -> None:
-        """添加广播邻居"""
-        if port is None:
-            self.peer_nodes.add(f'{addr}')
-        else:
-            self.peer_nodes.add(f'{addr}:{port}')
-
-    def login(self) -> None:
-        """连接到种子服务器"""
-        addr, port = SEED_NODE_ADDR
-        url = f'http://{addr}:{port}/login'
-        payload = {'port': self.port}
-        try:
-            requests.post(url, data=payload)
-        except:
-            logger.debug('连接种子服务器失败！')
-
-    def update_peer(self) -> bool:
-        """向种子服务器获取在线节点"""
-        logger.info('开始更新网络邻居')
-        addr, port = SEED_NODE_ADDR
-        url = f'http://{addr}:{port}/nodes'
-        try:
-            response = requests.get(url)
-        except:
-            logger.debug('连接种子服务器失败！')
-            return False
-        server_nodes = response.json()
-        self.peer_nodes.clear()
-        for node in server_nodes:
-            self.add_peer(node[0], int(node[1]))
-        return True
-
-    def wrapped_update_peer(self, interval=10, callback=None) -> None:
-        """
-        提供给自动更新的包裹函数
-        :param callback: 回调函数
-        :param interval: 执行间隔时间
-        """
-        while True:
-            if not self.update_peer():
-                break
-            time.sleep(interval)
-            if callback:
-                callback()
-
-    def automatic_update_peer(self, interval=10, callback=None) -> None:
-        """
-        自动更新在线列表
-        :param callback: 回调函数
-        :param interval: 执行间隔时间
-        """
-        update_thread = threading.Thread(target=self.wrapped_update_peer, args=(interval, callback))
-        update_thread.start()
 
     def update_chain(self):
         """从P2P网络中获取最长链更新本地区块链"""
@@ -440,9 +353,9 @@ class Peer:
         logger.info('开始更新区块链！')
         longest_node = None
         highest = len(self.chain)
-        peer_nodes = self.peer_nodes.copy()
+        peer_nodes = self.p2p_node.get_peers()
         for node in peer_nodes:
-            url = f'http://{node}/chain-height'
+            url = f'http://{node[0]}:{node[1]}/chain-height'
             logger.debug(url)
             try:
                 response = requests.get(url)
@@ -456,7 +369,7 @@ class Peer:
         if longest_node is None:
             return False
         try:
-            url = f'http://{longest_node}/chain'
+            url = f'http://{longest_node[0]}:{longest_node[1]}/chain'
             response = requests.get(url)
             self.replace_chain(response.json())
             return True
@@ -472,3 +385,12 @@ class Peer:
         self.load_genesis_block(self.genesis_block_file)
         for block in blocks:
             self.receive_block(block)
+
+    def notify(self, event: str, message: str):
+        """
+        通知Websocket发送消息
+        :param event: 事件
+        :param message: 消息
+        """
+        if self.ws_notify:
+            self.ws_notify(event, message)

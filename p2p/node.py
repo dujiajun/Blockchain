@@ -8,6 +8,8 @@ from enum import Enum
 from time import sleep, time
 from typing import Union, Dict, List, Optional
 
+from blockchain.block import Block
+from blockchain.transaction import Tx
 from p2p.config import *
 from utils.json_utils import MyJSONEncoder
 from utils.log import logger
@@ -20,6 +22,8 @@ class ActionType(Enum):
     INTRODUCE = 'introduce'
     HEARTBEAT_REQUEST = 'heartbeat_request'
     HEARTBEAT_RESPONSE = 'heartbeat_response'
+    TXS = 'txs'
+    BLOCK = 'block'
 
 
 def create_message(action_type: ActionType, data: Union[dict, str, set]) -> dict:
@@ -38,7 +42,7 @@ def create_message(action_type: ActionType, data: Union[dict, str, set]) -> dict
 class P2PNode:
     """P2P节点对象"""
 
-    def __init__(self, port: int):
+    def __init__(self, port: int, blockchain=None):
         """
         初始化
         :param port: 监听端口号
@@ -50,6 +54,8 @@ class P2PNode:
         self.peers_lock = threading.Lock()
         self.peer_lives_lock = threading.Lock()
 
+        self.blockchain = blockchain
+
     def run(self):
         """启动P2P节点"""
         self.sock.bind(('0.0.0.0', self.port))
@@ -58,6 +64,62 @@ class P2PNode:
         thread_recv.start()
         thread_keep_alive.start()
         self.send_to_seed()
+
+    def get_peers(self) -> List[tuple]:
+        """
+        获取在线节点列表
+        :return: 在线节点列表
+        """
+        self.peers_lock.acquire()
+        peers = list(self.peers.copy())
+        self.peers_lock.release()
+        return peers
+
+    def broadcast_txs(self, txs: List[Tx]):
+        """
+        广播交易列表
+        :param txs: 交易列表
+        """
+        self.broadcast(create_message(ActionType.TXS, json.dumps(txs, cls=MyJSONEncoder)))
+
+    def broadcast_block(self, block: Block):
+        """
+        广播区块
+        :param block: 区块
+        """
+        self.broadcast(create_message(ActionType.BLOCK, json.dumps(block, cls=MyJSONEncoder)))
+
+    def receive_txs(self, data: str) -> bool:
+        """
+        处理接收交易列表
+        :param data: 序列化的交易列表字符串
+        :return: 是否接收成功
+        """
+        if data is None:
+            self.blockchain.notify('message', '参数错误！')
+            return False
+        txs = json.loads(data)
+        for tx in txs:
+            tx = Tx.from_dict(tx)
+            self.blockchain.receive_transaction(tx)
+        self.blockchain.notify('notify', 'received txs')
+        return True
+
+    def receive_block(self, data: str) -> bool:
+        """
+        处理接收区块
+        :param data: 序列化的区块字符串
+        :return: 是否接收成功
+        """
+        if data is None:
+            self.blockchain.notify('message', '参数错误！')
+            return False
+        block = Block.from_dict(json.loads(data))
+        res = self.blockchain.receive_block(block)
+        if not res:
+            logger.debug("区块验证失败：" + str(block))
+        self.blockchain.notify('notify', 'received block')
+        return True
 
     def recv(self):
         """接收消息"""
@@ -68,7 +130,7 @@ class P2PNode:
                 logger.debug(e)
                 continue
             action = json.loads(data.decode(encoding='utf-8'))
-            logger.debug(f'receive from {addr}: {action}')
+            # logger.debug(f'receive from {addr}: {action}')
             if action['type'] == ActionType.NEW_PEER.value:
                 self.add_peer(addr)
                 self.send_peers(addr)
@@ -77,11 +139,16 @@ class P2PNode:
                 self.peers.update(peers)
                 self.broadcast_introduce()
             elif action['type'] == ActionType.INTRODUCE.value:
+                self.blockchain.notify('peer', 'new peers')
                 self.add_peer(addr)
             elif action['type'] == ActionType.HEARTBEAT_REQUEST.value:
                 self.send_heartbeat_response(addr)
             elif action['type'] == ActionType.HEARTBEAT_RESPONSE.value:
                 self.add_peer(addr)
+            elif action['type'] == ActionType.TXS.value:
+                self.receive_txs(action['data'])
+            elif action['type'] == ActionType.BLOCK.value:
+                self.receive_block(action['data'])
             self.refresh_peer_life(addr)
 
     def send(self, data: Union[dict, str, bytes], to: tuple):
@@ -121,7 +188,7 @@ class P2PNode:
 
     def get_silent_peers(self) -> List[tuple]:
         """获取一段时间内未通信节点"""
-        limit = time() - ALIVE_TIMEOUT
+        limit = int(time()) - ALIVE_TIMEOUT
         self.peer_lives_lock.acquire()
         silent_peers = [node for (node, last_time) in self.peer_lives.items() if last_time < limit]
         self.peer_lives_lock.release()
@@ -167,8 +234,8 @@ class P2PNode:
                 self.peers.remove(addr)
             if addr in self.peer_lives:
                 self.peer_lives.pop(addr)
-        self.peers_lock.release()
         self.peer_lives_lock.release()
+        self.peers_lock.release()
 
     def update_peers(self, peers: List[tuple]):
         """

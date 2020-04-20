@@ -5,7 +5,7 @@ from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 
-from peer import Peer, Tx, Block
+from peer import Peer
 from utils.json_utils import MyJSONEncoder
 from utils.log import logger
 
@@ -16,9 +16,8 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 
-def notify_peer_updated():
-    socketio.emit('peer', 'peers updated')
-    # TODO: 前端似乎没有收到
+def notify(event: str, message: str):
+    socketio.emit(event, message)
 
 
 parser = ArgumentParser()
@@ -26,13 +25,8 @@ parser.add_argument('-p', '--port', type=int, default=5000)
 args = parser.parse_args()
 port = args.port
 
-peer = Peer(port=port)
+peer = Peer(port=port, ws_notify=notify)
 peer.init()
-peer.login()
-peer.update_peer()
-
-
-#  peer.automatic_update_peer(callback=notify_peer_updated)
 
 
 @app.route('/')
@@ -127,19 +121,7 @@ def get_orphan_block():
 
 @app.route('/peers', methods=['GET'])
 def get_peers():
-    response = [node for node in peer.peer_nodes]
-    return jsonify(response)
-
-
-@app.route('/peers', methods=['POST'])
-def add_peer():
-    peer_node = request.form.get(key='node', type=str, default=None)
-    if not peer_node:
-        response = {'message': '参数错误！'}
-        return jsonify(response)
-    peer.add_peer(peer_node)
-    response = [node for node in peer.peer_nodes]
-    return jsonify(response)
+    return jsonify(peer.peer_nodes)
 
 
 @app.route('/transaction', methods=['POST'])
@@ -159,26 +141,6 @@ def create_transaction():
     else:
         response = {'message': '创建交易失败！'}
         return jsonify(response)
-
-
-@app.route('/receive-transaction', methods=['POST'])
-def receive_transaction():
-    src_addr = request.remote_addr
-    src_port = request.form.get('port', type=int, default=None)
-    peer.add_peer(src_addr, src_port)
-    txs_str = request.form.get('txs', type=str)
-    if txs_str is None:
-        response = {'message': '参数错误！'}
-        return jsonify(response)
-    txs = json.loads(txs_str)
-    for tx in txs:
-        tx = Tx.from_dict(tx)
-        res = peer.receive_transaction(tx)
-        if not res:
-            logger.debug("交易验证失败或已在交易池中！：" + str(tx))
-    response = {'message': '已广播！'}
-    socketio.emit('notify', 'received txs')
-    return jsonify(response)
 
 
 @app.route('/broadcast-txs', methods=['POST'])
@@ -208,24 +170,6 @@ def mine(message):
         emit('mine', json.dumps(peer.candidate_block, cls=MyJSONEncoder))
 
 
-@app.route('/receive-block', methods=['POST'])
-def receive_block():
-    src_addr = request.remote_addr
-    src_port = request.form.get('port', type=int, default=None)
-    peer.add_peer(src_addr, src_port)
-    block_str = request.form.get('block', type=str)
-    if block_str is None:
-        response = {'message': '参数错误！'}
-        return jsonify(response)
-    block = Block.from_dict(json.loads(block_str))
-    res = peer.receive_block(block)
-    if not res:
-        logger.debug("区块验证失败：" + str(block))
-    response = {'message': '已广播！'}
-    socketio.emit('notify', 'received block')
-    return jsonify(response)
-
-
 @app.route('/broadcast-block', methods=['POST'])
 def broadcast_block():
     if peer.broadcast_block():
@@ -234,13 +178,6 @@ def broadcast_block():
         response = {'message': '未广播！'}
     socketio.emit('notify', 'broadcast block')
     return jsonify(response)
-
-
-@app.route('/keep-alive', methods=['POST'])
-def keep_alive():
-    ip = request.remote_addr
-    logger.info(f'收到{ip}的心跳包')
-    return jsonify(True)
 
 
 @app.route('/update-chain', methods=['POST'])
@@ -254,4 +191,4 @@ def update_chain():
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)
