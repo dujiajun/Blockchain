@@ -1,4 +1,4 @@
-requests
+httpx
 base58
 ecdsa
 Flask

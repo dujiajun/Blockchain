@@ -3,7 +3,7 @@ import threading
 from os.path import exists
 from typing import Dict, List, Optional
 
-import requests
+import httpx
 
 from blockchain.consensus import mine
 from blockchain.transaction import Vout, Vin
@@ -11,6 +11,25 @@ from p2p.node import P2PNode
 from utils.json_utils import MyJSONEncoder
 from utils.transaction_utils import *
 from utils.verify_utils import *
+
+
+def broadcast(peers: List[tuple], payload: dict, payload_type: str):
+    """
+    广播区块或者交易
+    :param peers: 在线节点列表
+    :param payload: 负载
+    :param payload_type: 类型
+    """
+    for (ip, port) in peers:
+        url = f"http://{ip}:{port}/receive-{payload_type}"
+        if payload_type == 'txs':
+            logger.info(f"广播交易：开始向{ip}:{port}广播离线交易")
+        else:
+            logger.info(f"广播区块：开始向{ip}:{port}广播区块")
+        try:
+            httpx.post(url, data=payload)
+        except:
+            logger.debug(f'向{ip}:{port}广播失败！')
 
 
 class Peer:
@@ -22,6 +41,14 @@ class Peer:
                  genesis_block_file: str = 'genesis_block.txt',
                  port: int = 5000,
                  ws_notify: Optional[callable] = None):
+        """
+        初始化
+        :param wallet_file: 钱包文件地址
+        :param blockchain_file: 本地区块链文件地址
+        :param genesis_block_file: 创世区块文件地址
+        :param port: 绑定的端口
+        :param ws_notify: websocket回调函数
+        """
         self.wallet_file = wallet_file.format(port)
         self.blockchain_file = blockchain_file.format(port)
         self.genesis_block_file = genesis_block_file
@@ -177,7 +204,9 @@ class Peer:
             logger.info("广播交易：邻居为空")
             return False
 
-        self.p2p_node.broadcast_txs(self.txs)
+        payload = {'txs': json.dumps(self.txs, cls=MyJSONEncoder)}
+        peers = self.p2p_node.get_peers()
+        broadcast(peers, payload, 'txs')
         self.txs.clear()
         return True
 
@@ -232,8 +261,9 @@ class Peer:
         if self.candidate_block is None:
             logger.info("广播区块：未创建候选区块")
             return False
-
-        self.p2p_node.broadcast_block(self.candidate_block)
+        payload = {'block': json.dumps(self.candidate_block, cls=MyJSONEncoder)}
+        peers = self.p2p_node.get_peers()
+        broadcast(peers, payload, 'block')
         self.candidate_block = None
         return True
 
@@ -367,7 +397,7 @@ class Peer:
             return False
         try:
             url = f'http://{longest_node[0]}:{longest_node[1]}/chain'
-            response = requests.get(url)
+            response = httpx.get(url)
             self.replace_chain(response.json())
             return True
         except:

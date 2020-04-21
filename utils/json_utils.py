@@ -2,7 +2,7 @@ import ecdsa
 from flask.json import JSONEncoder
 
 from blockchain.block import Block
-from blockchain.transaction import Vout, Tx
+from blockchain.transaction import Tx
 from utils.printable import Printable
 
 
@@ -16,14 +16,9 @@ class MyJSONEncoder(JSONEncoder):
             return obj.to_string().hex()
         if isinstance(obj, Printable):
             obj_dict = obj.__dict__.copy()
-            # if isinstance(obj, Vin):
-            #     obj_dict['sig_script'] = obj.sig_script
-            if isinstance(obj, Vout):
-                obj_dict['pubkey_script'] = obj.pubkey_script
             if isinstance(obj, Tx):
                 obj_dict['is_coinbase'] = obj.is_coinbase
                 obj_dict['id'] = obj.id
             if isinstance(obj, Block):
                 obj_dict['hash'] = obj.hash
             return obj_dict
-        # return JSONEncoder.default(self, obj)

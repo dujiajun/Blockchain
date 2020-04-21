@@ -6,8 +6,6 @@ from enum import Enum
 from time import sleep, time
 from typing import Union, Dict, List, Optional
 
-from blockchain.block import Block
-from blockchain.transaction import Tx
 from p2p.config import *
 from utils.json_utils import MyJSONEncoder
 from utils.log import logger
@@ -20,8 +18,6 @@ class ActionType(Enum):
     INTRODUCE = 'introduce'
     HEARTBEAT_REQUEST = 'heartbeat_request'
     HEARTBEAT_RESPONSE = 'heartbeat_response'
-    TXS = 'txs'
-    BLOCK = 'block'
 
 
 def create_message(action_type: ActionType, data: Union[int, dict, str, set]) -> dict:
@@ -73,52 +69,6 @@ class P2PNode(object):
         self.peers_lock.release()
         return peers
 
-    def broadcast_txs(self, txs: List[Tx]):
-        """
-        广播交易列表
-        :param txs: 交易列表
-        """
-        self.broadcast(create_message(ActionType.TXS, json.dumps(txs, cls=MyJSONEncoder)))
-
-    def broadcast_block(self, block: Block):
-        """
-        广播区块
-        :param block: 区块
-        """
-        self.broadcast(create_message(ActionType.BLOCK, json.dumps(block, cls=MyJSONEncoder)))
-
-    def receive_txs(self, data: str) -> bool:
-        """
-        处理接收交易列表
-        :param data: 序列化的交易列表字符串
-        :return: 是否接收成功
-        """
-        if data is None:
-            self.blockchain.notify('message', '参数错误！')
-            return False
-        txs = json.loads(data)
-        for tx in txs:
-            tx = Tx.from_dict(tx)
-            self.blockchain.receive_transaction(tx)
-        self.blockchain.notify('notify', 'received txs')
-        return True
-
-    def receive_block(self, data: str) -> bool:
-        """
-        处理接收区块
-        :param data: 序列化的区块字符串
-        :return: 是否接收成功
-        """
-        if data is None:
-            self.blockchain.notify('message', '参数错误！')
-            return False
-        block = Block.from_dict(json.loads(data))
-        res = self.blockchain.receive_block(block)
-        if not res:
-            logger.debug("区块验证失败：" + str(block))
-        self.blockchain.notify('notify', 'received block')
-        return True
-
     def recv(self):
         """接收消息"""
         while True:
@@ -144,10 +94,6 @@ class P2PNode(object):
             elif action['type'] == ActionType.HEARTBEAT_RESPONSE.value:
                 self.blockchain.update_longest(action['data'], addr)
                 self.add_peer(addr)
-            elif action['type'] == ActionType.TXS.value:
-                self.receive_txs(action['data'])
-            elif action['type'] == ActionType.BLOCK.value:
-                self.receive_block(action['data'])
             self.refresh_peer_life(addr)
 
     def send(self, data: Union[dict, str, bytes], to: tuple):

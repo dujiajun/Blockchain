@@ -5,7 +5,7 @@ from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 
-from peer import Peer
+from peer import Peer, Block, Tx
 from utils.json_utils import MyJSONEncoder
 from utils.log import logger
 
@@ -139,6 +139,23 @@ def create_transaction():
         return jsonify(response)
 
 
+@app.route('/receive-txs', methods=['POST'])
+def receive_transaction():
+    txs_str = request.form.get('txs', type=str)
+    if txs_str is None:
+        response = {'message': '参数错误！'}
+        return jsonify(response)
+    txs = json.loads(txs_str)
+    for tx in txs:
+        tx = Tx.from_dict(tx)
+        res = peer.receive_transaction(tx)
+        if not res:
+            logger.debug("交易验证失败或已在交易池中！：" + str(tx))
+    response = {'message': '已广播！'}
+    socketio.emit('notify', 'received txs')
+    return jsonify(response)
+
+
 @app.route('/broadcast-txs', methods=['POST'])
 def broadcast_txs():
     if peer.broadcast_txs():
@@ -164,6 +181,21 @@ def create_candidate_block():
 def mine(message):
     if peer.consensus():
         emit('mine', json.dumps(peer.candidate_block, cls=MyJSONEncoder))
+
+
+@app.route('/receive-block', methods=['POST'])
+def receive_block():
+    block_str = request.form.get('block', type=str)
+    if block_str is None:
+        response = {'message': '参数错误！'}
+        return jsonify(response)
+    block = Block.from_dict(json.loads(block_str))
+    res = peer.receive_block(block)
+    if not res:
+        logger.debug("区块验证失败：" + str(block))
+    response = {'message': '已广播！'}
+    socketio.emit('notify', 'received block')
+    return jsonify(response)
 
 
 @app.route('/broadcast-block', methods=['POST'])
