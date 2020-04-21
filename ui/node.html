@@ -25,9 +25,7 @@
         <v-toolbar-title class="ml-1 mr-2">
           区块链管理平台
         </v-toolbar-title>
-
         <v-btn text>本地</v-btn>
-        <v-btn text>网络</v-btn>
         <v-spacer></v-spacer>
       </v-app-bar>
       <v-content>
@@ -116,7 +114,7 @@
                   Block #{{i}}
                 </v-card-title>
                 <v-card-text>
-                  {{block}}
+                  <pre class="body-2">{{block}}</pre>
                 </v-card-text>
               </v-card>
             </div>
@@ -128,7 +126,7 @@
                   Tx #{{i}}
                 </v-card-title>
                 <v-card-text>
-                  {{tx}}
+                  <pre class="body-2">{{tx}}</pre>
                 </v-card-text>
               </v-card>
             </div>
@@ -145,7 +143,7 @@
                   UTXO #{{i}}
                 </v-card-title>
                 <v-card-text>
-                  {{utxo}}
+                  <pre class="body-2">{{utxo}}</pre>
                 </v-card-text>
               </v-card>
             </div>
@@ -162,7 +160,7 @@
                   Tx #{{i}}
                 </v-card-title>
                 <v-card-text>
-                  {{tx}}
+                  <pre class="body-2">{{tx}}</pre>
                 </v-card-text>
               </v-card>
             </div>
@@ -179,7 +177,7 @@
                   Tx #{{i}}
                 </v-card-title>
                 <v-card-text>
-                  {{tx}}
+                  <pre class="body-2">{{tx}}</pre>
                 </v-card-text>
               </v-card>
             </div>
@@ -196,7 +194,7 @@
                   Block #{{i}}
                 </v-card-title>
                 <v-card-text>
-                  {{block}}
+                  <pre class="body-2">{{block}}</pre>
                 </v-card-text>
               </v-card>
             </div>
@@ -337,30 +335,30 @@
         this.update();
         this.socket.on("mine", this.notifyMine);
         this.socket.on("notify", this.notify);
-          this.socket.on("peer", this.notifyPeer);
-          this.socket.on("message", this.notifyMessage);
+        this.socket.on("peer", this.notifyPeer);
+        this.socket.on("message", this.notifyMessage);
       },
       methods: {
-          notifyMine: function (message) {
-              this.candidate_block = message;
-              this.showSnackbar("已完成共识");
-          },
-          notify: function (message) {
-              this.update();
-          },
-          notifyMessage: function (message) {
-              this.showSnackbar(message);
-          },
-          notifyPeer: function (message) {
-              this.loadPeers();
-          },
-          showDialogAlert: function (message) {
-              this.alert_msg = message;
-              this.alert = true;
-          },
-          showSnackbar: function (message) {
-              this.snackbar_text = message;
-              this.snackbar = true;
+        notifyMine: function (message) {
+          this.candidate_block = message;
+          this.showSnackbar("已完成共识");
+        },
+        notify: function (message) {
+          this.update();
+        },
+        notifyMessage: function (message) {
+          this.showSnackbar(message);
+        },
+        notifyPeer: function (message) {
+          this.loadPeers();
+        },
+        showDialogAlert: function (message) {
+          this.alert_msg = message;
+          this.alert = true;
+        },
+        showSnackbar: function (message) {
+          this.snackbar_text = message;
+          this.snackbar = true;
         },
         loadFromFile: async function () {
           try {
@@ -471,24 +469,24 @@
         },
         changeTab: function (event) {
           /*switch (this.tab) {
-            case 0:
-              this.loadChain();
-              break;
-            case 1:
-              this.loadUTXO();
-              break;
-            case 2:
-              this.loadMemPool();
-              break;
-            case 3:
-              this.loadTxs();
-              break;
-            case 4:
-              this.loadPeers();
-              break;
-            default:
-              break;
-          }*/
+          case 0:
+            this.loadChain();
+            break;
+          case 1:
+            this.loadUTXO();
+            break;
+          case 2:
+            this.loadMemPool();
+            break;
+          case 3:
+            this.loadTxs();
+            break;
+          case 4:
+            this.loadPeers();
+            break;
+          default:
+            break;
+        }*/
         },
         createTransaction: async function (addr, value) {
           if (value.trim() == "" || addr.trim() == "") {
