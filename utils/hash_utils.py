@@ -1,9 +1,10 @@
 from hashlib import sha256, new
+from typing import Union
 
 from base58 import b58encode_check
 
 
-def sha256d(string) -> str:
+def sha256d(string: Union[str, bytes]) -> str:
     """
     SHA256双哈希
     :param string: 需要哈希的数据
@@ -14,17 +15,17 @@ def sha256d(string) -> str:
     return sha256(sha256(string).digest()).hexdigest()
 
 
-def convert_pubkey_to_addr(pubkey_str) -> str:
+def convert_pubkey_to_addr(pubkey: bytes) -> str:
     """
-    :param pubkey_str: 公钥字符串
+    :param pubkey: 公钥字符串
     :return: 编码后的地址
     """
-    sha = sha256(pubkey_str).digest()
+    sha = sha256(pubkey).digest()
     ripe = new('ripemd160', sha).digest()
     return b58encode_check(b'\x00' + ripe).decode()
 
 
-def build_message(string) -> bytes:
+def build_message(string: str) -> bytes:
     """
     计算明文的双哈希值
     :param string: 明文
