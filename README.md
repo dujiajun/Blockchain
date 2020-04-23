@@ -9,7 +9,7 @@
 * flask
 * ecdsa
 * base58
-* requests
+* httpx
 * flask-cors
 * flask-socketio
 * eventlet
