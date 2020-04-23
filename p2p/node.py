@@ -166,6 +166,7 @@ class P2PNode(object):
         """
         self.peers_lock.acquire()
         self.peers.add(addr)
+        self.refresh_peer_life(addr)
         self.peers_lock.release()
 
     def remove_peer(self, peers: List[tuple]):

@@ -120,6 +120,14 @@ def get_peers():
     return jsonify(peer.peer_nodes)
 
 
+@app.route('/peers', methods=['POST'])
+def add_peers():
+    addr = request.form.get(key='node', type=str, default=None)
+    node_ip, node_port = addr.split(':')
+    peer.p2p_node.add_peer((node_ip, int(node_port)))
+    return jsonify(peer.peer_nodes)
+
+
 @app.route('/transaction', methods=['POST'])
 def create_transaction():
     if peer.wallet.empty():
