@@ -51,7 +51,7 @@ def verify_signature_for_vin(vin, utxo, tx_out):
         logger.debug("签名地址不匹配")
         return False
     vk = ecdsa.VerifyingKey.from_string(pk_str, curve=Params.CURVE)
-    message = Wallet.create_signature(pk_str, vin.to_spend, tx_out)
+    message = Wallet.create_signature_message(pk_str, vin.to_spend, tx_out)
     try:
         vk.verify(sig, message)  # 数字签名是否匹配
         return True

@@ -37,17 +37,17 @@ class Wallet(Printable):
         return self.sk.sign(message)
 
     @classmethod
-    def create_signature(cls, pk: bytes, pointer: Pointer, tx_out: List[Vout]) -> bytes:
+    def create_signature_message(cls, pk: bytes, pointer: Pointer, tx_out: List[Vout]) -> bytes:
         """
-        创建签名
+        创建签名明文
         :param pk: 公钥字符串
         :param pointer: 使用的UTXO的定位指针
         :param tx_out: 输出列表
-        :return: 签名
+        :return: 签名明文
         """
         string = str(pointer) + str(pk) + str(tx_out)
-        signature = build_message(string)
-        return signature
+        message = build_message(string)
+        return message
 
     def save_keys(self, filename: Optional[str] = None) -> None:
         if self.sk is None:

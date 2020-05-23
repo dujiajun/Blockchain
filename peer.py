@@ -170,7 +170,7 @@ class Peer:
         else:
             tx_out.append(Vout(to_addr=to_addr, value=value - self.fee))
         for utxo in utxos[:n]:
-            message = self.wallet.create_signature(self.pk, utxo.pointer, tx_out)
+            message = self.wallet.create_signature_message(self.pk, utxo.pointer, tx_out)
             signature = self.wallet.sign(message)
             tx_in.append(Vin(to_spend=utxo.pointer, signature=signature, pubkey=self.pk))
             # self.utxo_set[utxo.pointer] = utxo.replace(unspent=False)
