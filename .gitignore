@@ -1,6 +1,8 @@
 blockchain*.txt
 wallet*.txt
 genesis_block.txt
+plot/
+*.pdf
 __pycache__/
 test/__pycache__/
 utils/__pycache__/

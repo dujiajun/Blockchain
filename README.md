@@ -13,6 +13,8 @@
 * flask-cors
 * flask-socketio
 * eventlet
+* matplotlib
+* numpy
 
 ### 安装
 建议使用conda或virtualenv新建虚拟环境。

@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="pi">
+  <component name="PublishConfigData" autoUpload="Always">
     <serverData>
       <paths name="pi">
         <serverdata>
           <mappings>
             <mapping deploy="/Blockchain" local="$PROJECT_DIR$" web="/" />
           </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/wallet_5000.txt" />
+            <excludedPath local="true" path="$PROJECT_DIR$/wallet_5002.txt" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

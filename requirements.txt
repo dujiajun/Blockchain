@@ -5,3 +5,5 @@ Flask
 Flask-Cors
 flask-socketio
 eventlet
+matplotlib
+numpy
